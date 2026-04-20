@@ -1,9 +1,16 @@
+name: housing-api
+
 services:
   api:
     build:
       context: .
+    env_file:
+      - .env
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -16,3 +23,25 @@ services:
       timeout: 3s
       retries: 3
       start_period: 30s
+
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pg_data:
