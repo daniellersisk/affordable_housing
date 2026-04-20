@@ -8,3 +8,7 @@ select = ["E", "F", "I"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+  "integration: tests that exercise application code with real infrastructure dependencies",
+  "e2e: tests that exercise end-to-end HTTP flows against the running stack",
+]
