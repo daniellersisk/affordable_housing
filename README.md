@@ -12,18 +12,26 @@ This README is the single source of truth for both implementation guidance and t
 - Architecture separates framework code from business logic to avoid endpoint coupling.
 - This document includes setup steps, technical design decisions, and production-readiness considerations.
 
-## Quickstart (3 Commands)
+## Quickstart (Current Baseline)
 
 ```bash
+cp .env.example .env
 docker compose up --build
-docker compose run --rm api alembic upgrade head
-docker compose run --rm api python -m app.scripts.import_nyc_data
+docker compose run --rm --no-deps api ruff check .
 ```
 
 Then open:
 
 - Swagger docs: `http://localhost:8000/docs`
 - Health check: `http://localhost:8000/health`
+
+Current baseline status:
+
+- `api` and `db` containers start together with `docker compose up --build`
+- Postgres uses a named Docker volume for persistence
+- The `api` container waits for the `db` healthcheck before startup
+- Linting and tests run through Docker so no local Python environment is required
+- Alembic migrations and NYC data import are planned next and are not wired yet
 
 ## Where to Review Key Decisions
 
@@ -281,41 +289,62 @@ Suggested vars:
 
 ## Local Runbook
 
-## 1) Start stack
+## 1) Create local env file
+
+```bash
+cp .env.example .env
+```
+
+## 2) Start stack
 
 ```bash
 docker compose up --build
 ```
 
-## 2) Run migrations
+What this does today:
 
-```bash
-docker compose run --rm api alembic upgrade head
-```
+- starts the `db` container
+- waits for Postgres to become healthy
+- starts the `api` container
+- exposes FastAPI at `http://localhost:8000`
 
-## 3) Import NYC data
-
-```bash
-docker compose run --rm api python -m app.scripts.import_nyc_data
-```
-
-## 4) Verify API
+## 3) Verify API
 
 - Swagger docs: `http://localhost:8000/docs`
 - OpenAPI spec: `http://localhost:8000/openapi.json`
 - Health check: `http://localhost:8000/health`
 
-## 5) Tear down
+## 4) Run lint and tests in Docker
+
+```bash
+docker compose run --rm --no-deps api ruff check .
+docker compose run --rm api pytest -q
+```
+
+## 5) Planned next commands
+
+These are not available until the corresponding implementation steps land:
+
+```bash
+docker compose run --rm api alembic upgrade head
+docker compose run --rm api python -m app.scripts.import_nyc_data
+```
+
+## 6) Tear down
 
 ```bash
 docker compose down
 ```
 
-## 6) Tear down with volume reset (destructive)
+This stops containers but keeps the Postgres named volume, so DB data persists.
+
+## 7) Tear down with volume reset (destructive)
 
 ```bash
 docker compose down -v
 ```
+
+This also removes the Postgres named volume and deletes persisted DB data.
 
 ## Testing Strategy
 
