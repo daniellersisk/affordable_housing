@@ -23,7 +23,7 @@ Python 3.12 is the project baseline because it provides a stable, well-supported
 
 - **No duplicate clients or duplicate business logic.** Shared clients/utilities live once in top-level app modules and are reused.
 - **Imports at top of file only.** No inline imports, except `TYPE_CHECKING` guard cases.
-- **Config via settings object only.** Do not scatter `os.getenv()` across business code.
+- **Config via settings object only.** Only `app/settings.py` may read environment variables (`os.getenv()`); all other modules must import from `settings`.
 - **No magic strings/numbers.** Use constants/enums for repeated values and domain states.
 - **Type hints required.** Add explicit type hints for public functions and service interfaces.
 - **No large generated/static artifacts** when in-memory or DB-backed approaches are better.

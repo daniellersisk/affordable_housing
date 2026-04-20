@@ -8,7 +8,7 @@ alwaysApply: true
 - Read `AGENTS.md` and `README.md` before coding.
 - Do not duplicate clients, repositories, or business logic. Reuse top-level shared modules.
 - Keep imports at file top; no inline imports except `TYPE_CHECKING` guards.
-- Use settings/config object; do not scatter `os.getenv()` in business code.
+- Use settings/config object; only `app/settings.py` may call `os.getenv()`, and all other modules must import from `settings`.
 - Use constants/enums; avoid magic strings and numbers.
 - Add type hints to public function signatures.
 - Every endpoint must implement structured logging and explicit error mapping.
