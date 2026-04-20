@@ -11,6 +11,8 @@ Build and maintain a containerized Housing Units API with:
 - PostgreSQL
 - Docker + Docker Compose
 
+Python 3.12 is the project baseline because it provides a stable, well-supported target for the FastAPI/PostgreSQL stack while keeping modern typing/performance improvements and minimizing environment drift for reviewers.
+
 ## Source of Truth
 
 - Primary design and runbook: `README.md`

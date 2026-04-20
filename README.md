@@ -42,6 +42,13 @@ Then open:
 - Docker + Docker Compose
 - Pytest
 
+### Why Python 3.12
+
+- Strong compatibility across FastAPI, SQLAlchemy, Alembic, and common tooling used in this project.
+- Modern typing and runtime improvements help code quality and maintainability without introducing bleeding-edge risk.
+- Current and broadly adopted version for backend services, balancing stability with up-to-date language features.
+- Practical for interview/reviewer environments where reproducibility and predictable dependency behavior matter.
+
 ## Challenge Requirements Covered
 
 ### Required Endpoints
@@ -260,6 +267,13 @@ Suggested vars:
 - `POSTGRES_DB`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
+- `NYC_OPEN_DATA_URL` (or `NYC_OPEN_DATA_BASE_URL` + `NYC_OPEN_DATA_VIEW_ID`)
+- `NYC_OPEN_DATA_BASE_URL`
+- `NYC_OPEN_DATA_VIEW_ID`
+- `SODA_APP_TOKEN`
+- `INGEST_PAGE_SIZE`
+- `INGEST_TIMEOUT_SECONDS`
+- `INGEST_MAX_RETRIES`
 - `API_AUTH_ENABLED`
 - `WRITE_API_KEY` (required for write protection)
 - `WRITE_API_KEY_HEADER` (default `X-API-Key`)
