@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "required": ["code", "message"],
+  "properties": {
+    "code": { "type": "string" },
+    "message": { "type": "string" },
+    "details": {
+      "oneOf": [
+        { "type": "object" },
+        { "type": "array" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

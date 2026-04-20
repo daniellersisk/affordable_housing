@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": { "$ref": "housing_unit_response.json" }
+    },
+    "total": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 1 },
+    "offset": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

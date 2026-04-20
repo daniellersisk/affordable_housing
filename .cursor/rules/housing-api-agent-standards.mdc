@@ -1,0 +1,29 @@
+---
+description: Always-on engineering and agent workflow standards
+alwaysApply: true
+---
+
+# Housing API Agent Standards
+
+- Read `AGENTS.md` and `README.md` before coding.
+- Do not duplicate clients, repositories, or business logic. Reuse top-level shared modules.
+- Keep imports at file top; no inline imports except `TYPE_CHECKING` guards.
+- Use settings/config object; do not scatter `os.getenv()` in business code.
+- Use constants/enums; avoid magic strings and numbers.
+- Add type hints to public function signatures.
+- Every endpoint must implement structured logging and explicit error mapping.
+- Do not branch on raw exception message text; use typed exceptions/error codes.
+- Add tests for every new or changed function.
+- Add endpoint tests for success, validation failure, not-found/conflict, and auth failure (where applicable).
+- Contract tests are mandatory: verify status codes, response schemas, and error schemas for endpoint contracts.
+- When endpoint request/response contracts change, update contract tests in the same change set.
+- Use Socrata dataset API with `SODA_APP_TOKEN`; use `POST` for ingestion queries, require pagination for imports, and keep ingestion client centralized.
+- Normalize source fields at write-time; map source `total_units` -> `num_units`; use internal API `id` with composite source uniqueness (`project_id`, `building_id`).
+- Geo filtering uses a single endpoint discriminator: `geo_shape=rectangle|circle`; enforce required params per shape and return `422` with `{ code, message, details }` for mixed/missing shape params.
+- If any geo params are provided without `geo_shape`, return `422` with `code=INVALID_GEO_FILTER`.
+- Treat source-managed rows as read-only for `PUT`/`DELETE`; return `409` with clear `{ code, message, details }` to avoid import-refresh overwrite/resurrection confusion.
+- Treat security as required even for public APIs: protect write routes with API key auth, validate input, enforce least privilege.
+- Write auth contract: `X-API-Key`; missing/invalid key returns `401` with `{ code, message, details }`.
+- For QA reviews, apply `agents/qa.mdc` (function-level tests, endpoint path coverage, contract/regression validation).
+- For security reviews, apply `agents/security.mdc` (OWASP checks + rate limiting, security headers, audit logs, secret rotation, and supply-chain integrity).
+- If architecture scope changes, update spec/docs in the same change set.

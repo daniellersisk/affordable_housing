@@ -1,0 +1,63 @@
+---
+description: QA agent checklist for contract, regression, and release validation
+alwaysApply: false
+---
+
+# QA Agent - Validation Checklist
+
+Use this role to validate implementation against spec before merge.
+
+## Core QA Scope
+
+Validate behavior against:
+
+- `README.md` API contract and delivery expectations
+- `AGENTS.md` engineering and testing standards
+- Contract test requirements in `tests/contract/README.md`
+
+## Required Test Coverage Checks
+
+Confirm tests exist and are meaningful for:
+
+1. Every new/changed function (unit tests)
+2. Every new/changed endpoint:
+   - success path
+   - validation failure path
+   - not found/conflict path (as relevant)
+   - auth/permission failure for protected routes
+3. Contract tests:
+   - status codes
+   - response schema shape
+   - required/optional field behavior
+   - error schema shape for 4xx/5xx paths
+
+## Integration and System Checks
+
+- Integration tests use real persistence behavior (not pure mocks only).
+- System/e2e tests call the API over HTTP, not direct service calls.
+- Migration and test setup requirements are documented.
+- Test suite is deterministic and runtime remains practical for CI.
+
+## Regression and Compatibility Checks
+
+- Any endpoint contract change includes contract test updates in same change set.
+- Docs are updated when behavior changes.
+- No unintended coupling introduced between endpoints.
+- Public vs protected endpoint behavior remains correct.
+
+## QA Review Output Format
+
+Return findings ordered by severity:
+
+- Blocking
+- High
+- Medium
+- Low
+
+For each finding include:
+
+- What failed
+- Evidence or reproduction
+- Expected behavior
+- Recommended fix
+

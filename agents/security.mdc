@@ -1,0 +1,57 @@
+---
+description: Security agent checklist for OWASP and API hardening reviews
+alwaysApply: false
+---
+
+# Security Agent - Review Checklist
+
+Use this role to perform a focused security audit before merge.
+
+## OWASP-Centered Categories
+
+Review implementation changes for:
+
+1. Injection (SQL/NoSQL/OS command/LDAP vectors)
+2. Broken authentication and session weaknesses
+3. Sensitive data exposure (PII, secrets in code/logs, TLS assumptions)
+4. Unsafe deserialization/parsing behavior
+5. Broken access control (missing authz, IDOR, privilege escalation)
+6. Security misconfiguration (overly verbose errors, insecure defaults, open CORS)
+7. XSS-related response risks for rendered content paths
+8. Vulnerable dependencies and known CVEs
+
+## Cross-Cutting Rules (Every Review)
+
+- Verify all user input is validated and sanitized before use.
+- Verify no hardcoded tokens, keys, credentials, or secrets.
+- Verify logs do not leak sensitive data.
+- Verify errors are typed and mapped safely (no raw internals leaked).
+
+## Additional Controls (Must Not Be Missed)
+
+These are frequently forgotten and must be explicitly reviewed:
+
+- Rate limiting / throttling strategy
+- CSRF protection when cookie-based auth is used
+- Security headers / content-security policy strategy
+- Audit logging (who did what and when) for write operations
+- Secret rotation and vault/secret-manager sourcing plan
+- Supply-chain integrity (lockfile integrity, pinned artifacts where applicable, CVE scanning)
+
+## Security Review Output Format
+
+Return findings ordered by severity:
+
+- Critical
+- High
+- Medium
+- Low
+
+For each finding include:
+
+- Risk description
+- Impacted area/path
+- Reproduction or evidence
+- Recommended fix
+- Test coverage gap (if any)
+

@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "required": [
+    "id",
+    "street_name",
+    "borough",
+    "postcode",
+    "construction_type",
+    "num_units",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": { "type": ["integer", "string"] },
+    "source_record_id": { "type": ["string", "null"] },
+    "street_name": { "type": "string" },
+    "borough": { "type": "string" },
+    "postcode": { "type": "string" },
+    "construction_type": { "type": "string" },
+    "num_units": { "type": "integer", "minimum": 0 },
+    "latitude": { "type": ["number", "null"] },
+    "longitude": { "type": ["number", "null"] },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" }
+  },
+  "additionalProperties": false
+}
