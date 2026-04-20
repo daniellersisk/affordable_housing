@@ -343,15 +343,24 @@ docker compose down -v
 
 ## Test commands
 
+Run checks through Docker so the repo image is the source of truth:
+
 ```bash
-pytest -q
-pytest tests/unit -q
-pytest tests/integration -q
-pytest tests/e2e -q
-pytest tests/contract -q
+docker compose run --rm --no-deps api ruff check .
+docker compose run --rm api pytest -q
+docker compose run --rm api pytest tests/unit -q
+docker compose run --rm api pytest tests/integration -q
+docker compose run --rm api pytest tests/e2e -q
+docker compose run --rm api pytest tests/contract -q
 ```
 
 Contract test conventions and starter layout live in `tests/contract/README.md`.
+
+## Linting and CI
+
+- The `api` image installs both runtime and dev requirements so linting and tests can run inside Docker.
+- `ruff` configuration lives in `pyproject.toml`.
+- CI runs the baseline checks from `.github/workflows/ci.yml`.
 
 ## Security and API Concerns
 

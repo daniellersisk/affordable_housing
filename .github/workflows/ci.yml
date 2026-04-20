@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker compose build api
+
+      - name: Run Ruff
+        run: docker compose run --rm --no-deps api ruff check .
+
+      - name: Run tests
+        run: docker compose run --rm api pytest -q

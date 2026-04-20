@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 
-
 TRUE_VALUES = {"1", "true", "yes", "on"}
 FALSE_VALUES = {"0", "false", "no", "off"}
 
@@ -66,7 +65,9 @@ class Settings:
         default_factory=lambda: _get_str("NYC_OPEN_DATA_VIEW_ID", "hg8x-zxpr")
     )
     soda_app_token: str = field(default_factory=lambda: _get_str("SODA_APP_TOKEN", ""))
-    ingest_page_size: int = field(default_factory=lambda: _get_int("INGEST_PAGE_SIZE", 2000))
+    ingest_page_size: int = field(
+        default_factory=lambda: _get_int("INGEST_PAGE_SIZE", 2000)
+    )
     ingest_timeout_seconds: int = field(
         default_factory=lambda: _get_int("INGEST_TIMEOUT_SECONDS", 30)
     )
@@ -75,7 +76,9 @@ class Settings:
     )
 
     # API auth config (contains secret key)
-    api_auth_enabled: bool = field(default_factory=lambda: _get_bool("API_AUTH_ENABLED", True))
+    api_auth_enabled: bool = field(
+        default_factory=lambda: _get_bool("API_AUTH_ENABLED", True)
+    )
     write_api_key: str = field(default_factory=lambda: _get_str("WRITE_API_KEY", ""))
     write_api_key_header: str = field(
         default_factory=lambda: _get_str("WRITE_API_KEY_HEADER", "X-API-Key")
