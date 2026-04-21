@@ -12,6 +12,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Create .env from example
+        run: cp .env.example .env
+
       - name: Build API image
         run: docker compose build api
 
