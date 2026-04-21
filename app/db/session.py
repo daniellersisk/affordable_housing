@@ -1,13 +1,26 @@
-# Database session and engine setup.
-# Provides the SQLAlchemy async session factory and engine used across the app.
-# Import get_db in route handlers as a FastAPI dependency.
-# Step 3 will implement the engine/session wiring using settings.database_url.
+# Database engine and session factory.
+# get_db is the FastAPI dependency injected into route handlers that need a session.
+# Use Depends(get_db) in routes — never instantiate SessionLocal directly in handlers.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Generator
 
-if TYPE_CHECKING:
-    pass
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
-# TODO: Step 3 - wire SQLAlchemy engine and session factory from settings.database_url
-# TODO: Step 3 - implement get_db() as a FastAPI dependency that yields a session
+from app.settings import settings
+
+engine = create_engine(settings.database_url)
+
+SessionLocal: sessionmaker[Session] = sessionmaker(
+    bind=engine, autocommit=False, autoflush=False
+)
+
+
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI dependency that yields a database session and guarantees cleanup."""
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

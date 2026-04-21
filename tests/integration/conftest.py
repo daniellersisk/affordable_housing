@@ -1,7 +1,36 @@
 # Integration test fixtures.
 # Provides a real DB session against the test database with migrations applied.
-# Step 3 will implement the session setup and teardown fixtures.
+# apply_migrations runs once per test session; db_session wraps each test in a
+# rolled-back transaction so tests remain isolated and leave the schema clean.
 from __future__ import annotations
 
-# TODO: Step 3 - implement db_session fixture using test DATABASE_URL
-# TODO: Step 3 - ensure migrations are applied before integration tests run
+from collections.abc import Generator
+
+import pytest
+from alembic.config import Config
+from sqlalchemy.orm import Session
+
+from alembic import command
+from app.db.session import SessionLocal
+
+
+@pytest.fixture(scope="session", autouse=True)
+def apply_migrations() -> None:
+    """Apply all Alembic migrations before the integration test session starts."""
+    cfg = Config("alembic.ini")
+    command.upgrade(cfg, "head")
+
+
+@pytest.fixture
+def db_session(apply_migrations: None) -> Generator[Session, None, None]:
+    """Yield a session that is always rolled back after each test.
+
+    Flush is used in tests rather than commit, so rollback undoes all changes
+    and leaves the schema clean for the next test.
+    """
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()

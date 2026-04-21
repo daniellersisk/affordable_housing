@@ -10,6 +10,11 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY app ./app
 COPY tests ./tests
+COPY alembic ./alembic
+COPY alembic.ini ./
+COPY entrypoint.sh ./
 COPY README.md ./
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN chmod +x entrypoint.sh
+
+CMD ["./entrypoint.sh"]

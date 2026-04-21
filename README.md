@@ -37,7 +37,7 @@ What is not implemented yet:
 - auth enforcement on write routes
 - full contract, integration, and e2e coverage
 
-## Quickstart (Current Baseline)
+## Quickstart
 
 ```bash
 cp .env.example .env
@@ -50,11 +50,12 @@ Then open:
 - OpenAPI spec: `http://localhost:8000/openapi.json`
 - Health check: `http://localhost:8000/health`
 
-Current behavior:
+Startup sequence:
 
 - `db` starts first
 - Postgres becomes healthy through `pg_isready`
 - `api` starts only after Postgres is healthy
+- `entrypoint.sh` runs `alembic upgrade head` (idempotent — no-op if already at head)
 - FastAPI binds to `0.0.0.0` and is reachable on localhost
 
 ## Why This Stack
@@ -905,11 +906,11 @@ cp .env.example .env
 docker compose up --build
 ```
 
-What this does today:
+What this does:
 
 - starts the `db` container
 - waits for Postgres to become healthy
-- starts the `api` container
+- starts the `api` container, which runs `alembic upgrade head` before serving traffic
 - exposes FastAPI at `http://localhost:8000`
 
 ### 3. Verify the app
@@ -925,12 +926,11 @@ docker compose run --rm --no-deps api ruff check .
 docker compose run --rm api pytest -q
 ```
 
-### 5. Planned next commands
+### 5. Run data import (Step 6)
 
-These become valid once Step 3 and Step 6 land:
+Once Step 6 lands, populate the database with NYC open data:
 
 ```bash
-docker compose run --rm api alembic upgrade head
 docker compose run --rm api python -m app.scripts.import_nyc_data
 ```
 
