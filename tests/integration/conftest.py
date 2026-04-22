@@ -1,7 +1,7 @@
-# Integration test fixtures.
-# Provides a real DB session against the test database with migrations applied.
-# apply_migrations runs once per test session; db_session wraps each test in a
-# rolled-back transaction so tests remain isolated and leave the schema clean.
+# integration test fixtures.
+# apply_migrations runs once; db_session wraps each test in a transaction.
+# we flush inside tests (not commit) so rollback in the finally block undoes
+# everything — keeps the schema clean between tests without truncating tables.
 from __future__ import annotations
 
 from collections.abc import Generator
