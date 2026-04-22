@@ -20,8 +20,10 @@ That sequence keeps the challenge easy to review, easier to test, and easier to 
 
 What is implemented today:
 
+- `make` or `make up` starts the full stack from a clean clone; `.env` is auto-created from `.env.example` if missing
 - `docker compose up --build` starts both `api` and `db`, applies migrations, and serves FastAPI at `http://localhost:8000`
 - `GET /health` is live; Swagger UI at `/docs`
+- hot reload is enabled — saving any `.py` file triggers an automatic uvicorn reload without rebuilding the image
 - the `api` container waits for the `db` health check before starting
 - Postgres persists data through the named Docker volume `pg_data`
 - configuration is centralized in `app/settings.py`; no `os.getenv()` anywhere else
@@ -30,7 +32,8 @@ What is implemented today:
 - `entrypoint.sh` runs `alembic upgrade head` before uvicorn on every start (idempotent)
 - DB session layer with `get_db` FastAPI dependency
 - unit and integration tests for session layer and DB smoke tests
-- linting and tests run through Docker and are exercised in CI
+- CI runs lint, explicit migration gates (`alembic upgrade head`, `alembic current`, `alembic check`), and full test suite
+- `Makefile` wraps all common dev commands
 
 What is not implemented yet:
 
@@ -931,37 +934,51 @@ Core variables:
 
 ## Local Runbook
 
-### 1. Create local env file
+### 1. Start the stack
 
 ```bash
-cp .env.example .env
+make
 ```
 
-### 2. Start the stack
+This is the only command needed from a clean clone. It will:
+
+- copy `.env.example` to `.env` if `.env` does not already exist
+- start `db` and wait for Postgres to become healthy
+- start `api`, run `alembic upgrade head`, and serve FastAPI at `http://localhost:8000`
+- enable hot reload — any `.py` save triggers automatic reload without rebuilding
+
+To force a full image rebuild (only needed after dependency changes):
 
 ```bash
-docker compose up --build
+make build
 ```
 
-What this does:
-
-- starts the `db` container
-- waits for Postgres to become healthy
-- starts the `api` container, which runs `alembic upgrade head` before serving traffic
-- exposes FastAPI at `http://localhost:8000`
-
-### 3. Verify the app
+### 2. Verify the app
 
 - Swagger docs: `http://localhost:8000/docs`
 - OpenAPI spec: `http://localhost:8000/openapi.json`
 - health check: `http://localhost:8000/health`
 
-### 4. Run checks in Docker
+### 3. Run checks
 
 ```bash
-docker compose run --rm --no-deps api ruff check .
-docker compose run --rm api pytest -q
+make lint    # ruff check
+make test    # pytest
 ```
+
+### 4. Make reference
+
+| Command | What it does |
+|---|---|
+| `make` / `make up` | auto-creates `.env`, starts the stack |
+| `make build` | auto-creates `.env`, starts with `--build` |
+| `make down` | stops containers, keeps volume |
+| `make clean` | stops containers, wipes volume |
+| `make logs` | follows container logs |
+| `make test` | runs pytest |
+| `make lint` | runs ruff |
+| `make migrate` | runs `alembic upgrade head` manually |
+| `make import` | runs the NYC data import script (Step 6) |
 
 ### 5. Run data import (Step 6)
 
