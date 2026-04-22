@@ -36,6 +36,25 @@ Python 3.12 is the project baseline because it provides a stable, well-supported
 - Do not couple write endpoints to prerequisite read endpoint calls.
 - Use explicit commands for migrations/imports; avoid hidden side effects on app startup.
 
+### Layer Separation Rules (non-negotiable)
+
+The call chain is always: `route handler → service → repository → database`. Never skip or reverse a layer.
+
+- **Route handlers** call services only — never repositories directly.
+- **Services** call repositories only — never SQLAlchemy sessions or queries directly.
+- **Repositories** are the only layer that may import or use SQLAlchemy sessions, queries, or the ORM.
+- **Never import FastAPI, `HTTPException`, or `Request` in the service layer.** Services are pure Python business logic and must be testable without an HTTP server or FastAPI context.
+- **Services raise typed domain errors** (`NotFoundError`, `ConflictError`, `ValidationError` from `app/core/errors.py`). They never raise `HTTPException`.
+- **Route handlers own error mapping** — they catch domain errors and translate them to the correct HTTP status codes and structured error payloads. This mapping lives in one place only.
+
+```
+HTTP request
+    → route handler  (FastAPI — parse input, map errors, return output)
+        → service    (pure Python — business rules, typed errors)
+            → repository  (SQLAlchemy — sessions, queries, persistence)
+                → database
+```
+
 ## NYC Open Data Ingestion Standard
 
 - Use Socrata dataset API access for `hg8x-zxpr`; do not hardcode one endpoint style in business code.
