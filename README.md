@@ -887,6 +887,17 @@ The database must live outside container lifecycle.
 
 The current Compose file uses a named volume, which is the right baseline for this project because it balances durability with reviewer simplicity.
 
+**Local-first persistence model**
+
+Once `pg_data` exists, the named volume is the source of truth for all local development:
+
+- `docker compose up` — volume untouched, data survives
+- `docker compose up --build` — image rebuilds, volume untouched, data survives
+- `docker compose down` — containers removed, volume survives
+- `docker compose down -v` — volume explicitly destroyed, fresh state on next start
+
+Alembic is idempotent: if the schema is already at head, `alembic upgrade head` is a no-op. Migrations only apply on first start or after a new migration is added.
+
 ### Environment Variables
 
 Use:
@@ -956,6 +967,8 @@ Once Step 6 lands, populate the database with NYC open data:
 ```bash
 docker compose run --rm api python -m app.scripts.import_nyc_data
 ```
+
+Run this once. The named volume persists the data across all subsequent starts — you do not need to re-import unless you explicitly wipe the volume with `docker compose down -v`. Re-running the import is always safe: `upsert_from_source` is idempotent on `(project_id, building_id)` so no duplicate rows will be created.
 
 ### 6. Tear down
 
