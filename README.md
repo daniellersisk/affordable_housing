@@ -14,28 +14,31 @@ The project is intentionally being delivered in layers:
 4. build domain logic before widening the HTTP surface
 5. expose documented API contracts through FastAPI and Swagger UI
 
-That sequence keeps the challenge easy to review, easier to test, and easier to discuss in an interview. The current repo is at the end of Step 2: Docker, Postgres orchestration, health checks, centralized settings, and CI are in place; the application and persistence layers are still intentionally minimal.
+That sequence keeps the challenge easy to review, easier to test, and easier to discuss in an interview. The current repo is at the end of Step 3: Docker, Postgres orchestration, health checks, centralized settings, CI, SQLAlchemy models, Alembic migrations, and a real DB session layer are all in place. The domain, service, and API layers are next.
 
 ## Current Baseline
 
 What is implemented today:
 
-- `docker compose up --build` starts both `api` and `db`
+- `docker compose up --build` starts both `api` and `db`, applies migrations, and serves FastAPI at `http://localhost:8000`
+- `GET /health` is live; Swagger UI at `/docs`
 - the `api` container waits for the `db` health check before starting
 - Postgres persists data through the named Docker volume `pg_data`
-- FastAPI serves `GET /health` and automatically exposes Swagger UI at `/docs`
-- configuration is centralized in `app/settings.py`
+- configuration is centralized in `app/settings.py`; no `os.getenv()` anywhere else
+- `HousingUnit` ORM model with all columns, constraints, and indexes
+- Alembic wired to settings; first migration generated and verified
+- `entrypoint.sh` runs `alembic upgrade head` before uvicorn on every start (idempotent)
+- DB session layer with `get_db` FastAPI dependency
+- unit and integration tests for session layer and DB smoke tests
 - linting and tests run through Docker and are exercised in CI
 
 What is not implemented yet:
 
-- SQLAlchemy models
-- Alembic migration setup
-- DB session layer
-- `housing_units` CRUD endpoints
-- NYC open-data import script
-- auth enforcement on write routes
-- full contract, integration, and e2e coverage
+- repository and service layer (Step 4)
+- `housing_units` CRUD endpoints and Pydantic schemas (Step 5)
+- NYC open-data import script (Step 6)
+- auth enforcement on write routes (Step 7)
+- full contract, integration, and e2e coverage (Step 8)
 
 ## Quickstart
 
@@ -392,7 +395,7 @@ Out of scope:
 
 - Postgres must not be considered ready until `pg_isready` passes
 - the API container should start only after DB readiness
-- this repo is currently at the end of this step
+- this step is complete
 
 #### Risks + Mitigations
 
