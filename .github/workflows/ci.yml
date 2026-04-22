@@ -21,5 +21,14 @@ jobs:
       - name: Run Ruff
         run: docker compose run --rm --no-deps api ruff check .
 
+      - name: Apply migrations
+        run: docker compose run --rm api alembic upgrade head
+
+      - name: Verify schema at head
+        run: docker compose run --rm api alembic current
+
+      - name: Check for uncommitted model changes
+        run: docker compose run --rm api alembic check
+
       - name: Run tests
         run: docker compose run --rm api pytest -q
