@@ -462,14 +462,17 @@ Out of scope:
 
 #### Operational Notes
 
-- migration should run after Postgres is accepting connections and before the app serves traffic
-- preferred dev commands:
+- migration runs automatically via `entrypoint.sh` before uvicorn starts on every `docker compose up`
+- Alembic's advisory lock makes concurrent starts safe; the migration is a no-op when already at head
+- to run manually or inspect state:
 
 ```bash
 docker compose run --rm api alembic upgrade head
+docker compose run --rm api alembic current
+docker compose run --rm api alembic history
 ```
 
-- in production, migrations should run in a deploy/init step rather than FastAPI startup events
+- in production, migrations should move to a Kubernetes init container or a dedicated deploy job rather than running inside the app container; see the Migration Strategy section under Docker + Environment Design for the full trade-off discussion
 
 #### Risks + Mitigations
 
@@ -854,6 +857,26 @@ Out of scope:
 
 - `api`: FastAPI application container
 - `db`: PostgreSQL container
+
+### Migration Strategy
+
+Migrations run via `entrypoint.sh`, which calls `alembic upgrade head` before handing off to uvicorn on every container start. This means `docker compose up --build` is the only command a reviewer needs — the schema is always applied before the app accepts traffic.
+
+This is an intentional trade-off between two patterns:
+
+**Entrypoint script (current approach)**
+
+`entrypoint.sh` runs `alembic upgrade head` inside the `api` container before uvicorn starts. Alembic uses advisory locks so concurrent starts are safe, but the migration concern is coupled to the app container.
+
+Chosen here because it keeps the local developer and reviewer workflow to a single command with no extra setup.
+
+**Init container or migration job (production approach)**
+
+In Kubernetes this is a proper `initContainer` — a short-lived container that runs migrations and exits before the app container starts. In Docker Compose it would be a dedicated `migrate` service with `restart: no` that `api` depends on via `service_completed_successfully`. This fully decouples the migration concern from the app container and is the right pattern for horizontally scaled deployments.
+
+The rule from `AGENTS.md` is: do not couple migrations to FastAPI startup events (e.g. `@app.on_event("startup")`). An explicit entrypoint script satisfies that — it is still transparent, documented, and not hidden inside the application layer.
+
+In a production discussion the natural next step is: move `alembic upgrade head` into a Kubernetes init container or a dedicated deploy job so the app container has no migration responsibility.
 
 ### Persistence Requirement
 
