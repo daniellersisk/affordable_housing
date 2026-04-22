@@ -1,3 +1,7 @@
+# production runtime deps only.
+# kept separate from requirements-dev.txt so a prod image can install just this
+# file and not ship pytest, ruff, or any dev tooling into production.
+# in a multi-stage dockerfile the runtime stage would: pip install -r requirements.txt
 fastapi
 uvicorn[standard]
 sqlalchemy

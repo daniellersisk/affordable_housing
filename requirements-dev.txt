@@ -1,3 +1,6 @@
+# dev and test deps. installs prod deps first via -r requirements.txt.
+# the dockerfile uses this file so the single image supports both running and testing.
+# a future multi-stage build would use only requirements.txt for the runtime stage.
 -r requirements.txt
 pytest
 pytest-asyncio
