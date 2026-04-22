@@ -7,7 +7,11 @@ from fastapi import FastAPI
 
 from app.api.routes import health, housing_units
 
-app = FastAPI(title="Housing Units API")
+app = FastAPI(
+    title="Housing Units API",
+    description="nyc affordable housing units — queryable by borough, geo, and unit count.",
+    version="0.1.0",
+)
 
 app.include_router(health.router)
 app.include_router(housing_units.router)
