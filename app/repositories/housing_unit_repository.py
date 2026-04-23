@@ -1,7 +1,20 @@
-# repository for housing_units table access.
-# all database queries for housing units live here.
-# raises domain errors from app.core.errors, never raw sqlalchemy exceptions.
 from __future__ import annotations
+
+import math
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.core.constants import GeoShape
+from app.core.errors import ConflictError, NotFoundError
+from app.core.logging import get_logger
+from app.models.housing_unit import HousingUnit
+from app.schemas.filters import HousingUnitFilters
+
+logger = get_logger(__name__)
 
 # flush() sends sql to the db but doesn't commit — changes live in the transaction
 # and are visible in the same session. commit() makes them permanent.
@@ -9,9 +22,165 @@ from __future__ import annotations
 # into a single update instead of one round trip per field change.
 # the route handler owns commit/rollback; the repo just flushes.
 
-# TODO: Step 4 - implement get_by_id(session, id) -> HousingUnit | None
-# TODO: Step 4 - implement list_with_filters(session, filters) -> list[HousingUnit]
-# TODO: Step 4 - implement create(session, data) -> HousingUnit
-# TODO: Step 4 - implement update(session, id, data) -> HousingUnit
-# TODO: Step 4 - implement delete(session, id) -> None
-# TODO: Step 4 - implement upsert_from_source(session, records) -> int for ingestion
+# approximate meters per degree of latitude (constant — latitude lines are parallel)
+_METERS_PER_DEGREE_LAT = 111_111.0
+
+
+def get_by_id(session: Session, unit_id: int) -> HousingUnit | None:
+    """Fetch a single housing unit by internal id. Returns None if not found."""
+    try:
+        return session.get(HousingUnit, unit_id)
+    except SQLAlchemyError as exc:
+        logger.error("get_by_id failed", extra={"unit_id": unit_id, "error": str(exc)})
+        raise
+
+
+def list_with_filters(session: Session, filters: HousingUnitFilters) -> list[HousingUnit]:
+    """Return housing units matching all provided filters with pagination."""
+    stmt = select(HousingUnit)
+
+    if filters.street_name:
+        stmt = stmt.where(HousingUnit.street_name.ilike(f"%{filters.street_name}%"))
+    if filters.borough:
+        stmt = stmt.where(HousingUnit.borough == filters.borough.upper())
+    if filters.postcode:
+        stmt = stmt.where(HousingUnit.postcode == filters.postcode)
+    if filters.construction_type:
+        stmt = stmt.where(HousingUnit.construction_type.ilike(f"%{filters.construction_type}%"))
+    if filters.num_units_min is not None:
+        stmt = stmt.where(HousingUnit.num_units >= filters.num_units_min)
+    if filters.num_units_max is not None:
+        stmt = stmt.where(HousingUnit.num_units <= filters.num_units_max)
+
+    if filters.geo_shape == GeoShape.RECTANGLE:
+        stmt = _apply_rectangle_filter(stmt, filters)
+    elif filters.geo_shape == GeoShape.CIRCLE:
+        stmt = _apply_circle_filter(stmt, filters)
+
+    stmt = stmt.order_by(HousingUnit.id).limit(filters.limit).offset(filters.offset)
+
+    try:
+        return list(session.execute(stmt).scalars())
+    except SQLAlchemyError as exc:
+        logger.error("list_with_filters failed", extra={"error": str(exc)})
+        raise
+
+
+def create(session: Session, data: dict[str, Any]) -> HousingUnit:
+    """Insert a new housing unit. Raises ConflictError on duplicate source identity."""
+    unit = HousingUnit(**data)
+    session.add(unit)
+    try:
+        session.flush()
+    except IntegrityError as exc:
+        raise ConflictError("housing unit with these source ids already exists") from exc
+    logger.info("housing unit created", extra={"id": unit.id})
+    return unit
+
+
+def update(session: Session, unit_id: int, data: dict[str, Any]) -> HousingUnit:
+    """Update an existing housing unit by id. Raises NotFoundError if not found."""
+    unit = session.get(HousingUnit, unit_id)
+    if unit is None:
+        raise NotFoundError(f"housing unit {unit_id} not found")
+    for key, value in data.items():
+        setattr(unit, key, value)
+    try:
+        session.flush()
+    except IntegrityError as exc:
+        raise ConflictError("update conflicts with an existing record") from exc
+    logger.info("housing unit updated", extra={"id": unit_id})
+    return unit
+
+
+def delete(session: Session, unit_id: int) -> None:
+    """Delete a housing unit by id. Raises NotFoundError if not found."""
+    unit = session.get(HousingUnit, unit_id)
+    if unit is None:
+        raise NotFoundError(f"housing unit {unit_id} not found")
+    session.delete(unit)
+    session.flush()
+    logger.info("housing unit deleted", extra={"id": unit_id})
+
+
+def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
+    """Idempotent upsert for source-ingested records.
+
+    Normalizes source field names at write time (total_units -> num_units).
+    Uses INSERT ... ON CONFLICT on (project_id, building_id) to update existing rows.
+    Returns the number of rows affected.
+    """
+    if not records:
+        return 0
+
+    normalized = [_normalize_source_record(r) for r in records]
+
+    stmt = pg_insert(HousingUnit).values(normalized)
+    stmt = stmt.on_conflict_do_update(
+        constraint="uq_housing_units_project_building",
+        set_={
+            "street_name": stmt.excluded.street_name,
+            "borough": stmt.excluded.borough,
+            "postcode": stmt.excluded.postcode,
+            "construction_type": stmt.excluded.construction_type,
+            "num_units": stmt.excluded.num_units,
+            "latitude": stmt.excluded.latitude,
+            "longitude": stmt.excluded.longitude,
+        },
+    )
+
+    try:
+        session.execute(stmt)
+        session.flush()
+        # rowcount is unreliable for INSERT ON CONFLICT in psycopg (-1 is common);
+        # return the number of records attempted instead
+        count = len(normalized)
+        logger.info("upserted records from source", extra={"count": count})
+        return count
+    except SQLAlchemyError as exc:
+        logger.error("upsert_from_source failed", extra={"error": str(exc)})
+        raise
+
+
+def _normalize_source_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Map source field names to internal field names.
+
+    total_units -> num_units is the only normalization needed today.
+    All other source fields share names with the internal schema.
+    """
+    normalized = dict(record)
+    if "total_units" in normalized:
+        normalized["num_units"] = normalized.pop("total_units")
+    return normalized
+
+
+def _apply_rectangle_filter(stmt: Any, filters: HousingUnitFilters) -> Any:
+    """Apply a bounding box WHERE clause for geo_shape=rectangle."""
+    return stmt.where(
+        HousingUnit.latitude.between(filters.min_lat, filters.max_lat),
+        HousingUnit.longitude.between(filters.min_lon, filters.max_lon),
+    )
+
+
+def _apply_circle_filter(stmt: Any, filters: HousingUnitFilters) -> Any:
+    """Apply a bounding box approximation for geo_shape=circle.
+
+    Approximates the circle as a bounding box:
+      1 degree latitude  ≈ 111,111 m (constant)
+      1 degree longitude ≈ 111,111 * cos(lat) m (varies with latitude)
+
+    This is not a true circle filter — it includes corner points outside the radius.
+    It is accurate enough for the MVP without requiring PostGIS.
+    A PostGIS ST_DWithin upgrade would be the production path.
+    """
+    center_lat = float(filters.center_lat)  # type: ignore[arg-type]
+    center_lon = float(filters.center_lon)  # type: ignore[arg-type]
+    radius_m = float(filters.radius_m)  # type: ignore[arg-type]
+
+    lat_delta = radius_m / _METERS_PER_DEGREE_LAT
+    lon_delta = radius_m / (_METERS_PER_DEGREE_LAT * math.cos(math.radians(center_lat)))
+
+    return stmt.where(
+        HousingUnit.latitude.between(center_lat - lat_delta, center_lat + lat_delta),
+        HousingUnit.longitude.between(center_lon - lon_delta, center_lon + lon_delta),
+    )

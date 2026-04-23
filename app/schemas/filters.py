@@ -1,15 +1,38 @@
-# Pydantic query parameter schemas for GET /housing-units filtering.
-# Geo filter uses a single geo_shape discriminator (rectangle or circle).
-# Invalid or mixed geo params must return 422 with code=INVALID_GEO_FILTER.
-# Step 5 will implement the full filter model and geo validation logic.
 from __future__ import annotations
 
-# TODO: Step 5 - define HousingUnitFilters query model with:
-#   street_name, borough, postcode, construction_type (optional strings)
-#   num_units_min, num_units_max (optional ints)
-#   geo_shape (GeoShape enum, optional)
-#   rectangle params: min_lat, max_lat, min_lon, max_lon
-#   circle params: center_lat, center_lon, radius_m
-#   limit, offset for pagination
-# TODO: Step 5 - validator: geo_shape must be set when any geo param is provided
-# TODO: Step 5 - add validator that enforces required params per geo_shape value
+from dataclasses import dataclass, field
+from decimal import Decimal
+
+from app.core.constants import GeoShape
+
+# plain dataclass — used by repository and service layers.
+# step 5 will add the pydantic model on top for route-level validation and parsing.
+# keeping this as a dataclass keeps the repo and service layers framework-independent.
+
+
+@dataclass
+class HousingUnitFilters:
+    street_name: str | None = None
+    borough: str | None = None
+    postcode: str | None = None
+    construction_type: str | None = None
+    num_units_min: int | None = None
+    num_units_max: int | None = None
+
+    # geo discriminator — must be set when any geo param is provided
+    geo_shape: GeoShape | None = None
+
+    # rectangle params — required when geo_shape=rectangle
+    min_lat: Decimal | None = None
+    max_lat: Decimal | None = None
+    min_lon: Decimal | None = None
+    max_lon: Decimal | None = None
+
+    # circle params — required when geo_shape=circle
+    center_lat: Decimal | None = None
+    center_lon: Decimal | None = None
+    radius_m: float | None = None
+
+    # pagination
+    limit: int = field(default=100)
+    offset: int = field(default=0)
