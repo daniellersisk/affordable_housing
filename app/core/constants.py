@@ -12,6 +12,9 @@ class GeoShape(str, Enum):
     CIRCLE = "circle"
 
 
+SOURCE_IDENTITY_CONSTRAINT = "uq_housing_units_project_building"
+
+
 class ErrorCode(str, Enum):
     """Structured error codes returned in API error payloads."""
 

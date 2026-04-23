@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.constants import GeoShape
+from app.core.constants import SOURCE_IDENTITY_CONSTRAINT, GeoShape
 from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.models.housing_unit import HousingUnit
@@ -60,7 +60,9 @@ def list_with_filters(session: Session, filters: HousingUnitFilters) -> list[Hou
     stmt = stmt.order_by(HousingUnit.id).limit(filters.limit).offset(filters.offset)
 
     try:
-        return list(session.execute(stmt).scalars())
+        results = list(session.execute(stmt).scalars())
+        logger.info("list_with_filters", extra={"count": len(results)})
+        return results
     except SQLAlchemyError as exc:
         logger.error("list_with_filters failed", extra={"error": str(exc)})
         raise
@@ -117,7 +119,7 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
 
     stmt = pg_insert(HousingUnit).values(normalized)
     stmt = stmt.on_conflict_do_update(
-        constraint="uq_housing_units_project_building",
+        constraint=SOURCE_IDENTITY_CONSTRAINT,
         set_={
             "street_name": stmt.excluded.street_name,
             "borough": stmt.excluded.borough,
