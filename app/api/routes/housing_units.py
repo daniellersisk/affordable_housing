@@ -99,7 +99,7 @@ def list_housing_units(
         )
     except ValidationError as exc:
         first = exc.errors()[0]
-        msg = first["msg"]
+        msg = first["msg"].removeprefix("Value error, ")
         is_geo = "INVALID_GEO_FILTER" in msg
         code = ErrorCode.INVALID_GEO_FILTER if is_geo else ErrorCode.VALIDATION_ERROR
         clean_msg = msg.split("|")[0]
