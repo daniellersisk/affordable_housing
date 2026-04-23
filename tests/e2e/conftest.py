@@ -1,6 +1,7 @@
-# E2E test fixtures.
-# Provides an HTTP client that calls the live API container.
-# Step 5 will implement the HTTP client fixture and base URL config.
-from __future__ import annotations
+"""E2E test fixtures.
 
-# TODO: Step 5 - implement http_client fixture pointing at APP_HOST:APP_PORT
+E2E tests use the same TestClient from the root conftest.
+They exercise full HTTP lifecycle flows — create, read, update, delete —
+never instantiating services or repositories directly.
+"""
+from __future__ import annotations

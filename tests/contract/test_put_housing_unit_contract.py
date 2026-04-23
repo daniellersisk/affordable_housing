@@ -1,18 +1,55 @@
 """Contract tests for PUT /housing-units/{id}."""
+from __future__ import annotations
 
 import pytest
+from fastapi.testclient import TestClient
 
 
-@pytest.mark.skip(reason="Implement once API client fixture is available.")
-def test_put_housing_unit_success_contract() -> None:
-    """Verify success contract for updating a unit."""
+@pytest.mark.contract
+def test_put_housing_unit_success_contract(client: TestClient, auth_headers: dict) -> None:
+    """200 with updated response schema."""
+    created = client.post(
+        "/housing-units",
+        json={"num_units": 10, "street_name": "Old St"},
+        headers=auth_headers,
+    )
+    assert created.status_code == 201
+    unit_id = created.json()["id"]
+
+    response = client.put(
+        f"/housing-units/{unit_id}",
+        json={"street_name": "New St"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == unit_id
+    assert data["street_name"] == "New St"
+    for field in ("id", "num_units", "created_at", "updated_at"):
+        assert field in data
 
 
-@pytest.mark.skip(reason="Implement once API client fixture is available.")
-def test_put_housing_unit_auth_error_contract() -> None:
-    """Verify auth failure contract for protected write route."""
+@pytest.mark.contract
+def test_put_housing_unit_auth_error_contract(client: TestClient) -> None:
+    """401 with structured error when no auth header provided."""
+    response = client.put("/housing-units/1", json={"street_name": "X"})
+    assert response.status_code == 401
+    detail = response.json()["detail"]
+    assert detail["code"] == "UNAUTHORIZED"
+    assert "message" in detail
+    assert "details" in detail
 
 
-@pytest.mark.skip(reason="Implement once API client fixture is available.")
-def test_put_housing_unit_not_found_contract() -> None:
-    """Verify not-found error contract for missing ids."""
+@pytest.mark.contract
+def test_put_housing_unit_not_found_contract(client: TestClient, auth_headers: dict) -> None:
+    """404 with structured error for missing id."""
+    response = client.put(
+        "/housing-units/999999999",
+        json={"street_name": "Ghost St"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 404
+    detail = response.json()["detail"]
+    assert detail["code"] == "NOT_FOUND"
+    assert "message" in detail
+    assert "details" in detail
