@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import NotFoundError
 from app.core.logging import get_logger
 from app.models.housing_unit import HousingUnit
 from app.repositories import housing_unit_repository as repo
@@ -16,15 +16,11 @@ logger = get_logger(__name__)
 # route handlers call services; services call repositories.
 # domain errors raised here are caught and mapped to http responses in the route layer.
 
-
-def _is_source_managed(unit: HousingUnit) -> bool:
-    """A row is source-managed when both project_id and building_id are set.
-
-    Source-managed rows are owned by the NYC import and must not be
-    manually edited or deleted — doing so would be overwritten on the next
-    import run, creating confusing resurrection/overwrite behavior.
-    """
-    return bool(unit.project_id and unit.building_id)
+# all rows support full crud regardless of source identity.
+# source-managed rows (project_id + building_id set) are imported from nyc open data
+# but can still be edited or deleted via the api — nearly all data will be source-managed
+# so blocking writes on those rows would make put/delete effectively unusable.
+# if a recurring import is added in future, the trade-off can be revisited.
 
 
 def get_housing_unit(session: Session, unit_id: int) -> HousingUnit:
@@ -49,34 +45,18 @@ def create_housing_unit(session: Session, data: dict[str, Any]) -> HousingUnit:
 
 
 def update_housing_unit(session: Session, unit_id: int, data: dict[str, Any]) -> HousingUnit:
-    """Update a housing unit by id.
-
-    Raises NotFoundError if the unit does not exist.
-    Raises ConflictError if the unit is source-managed (project_id + building_id both set).
-    """
+    """Update a housing unit by id. Raises NotFoundError if the unit does not exist."""
     logger.info("update_housing_unit", extra={"unit_id": unit_id})
     unit = repo.get_by_id(session, unit_id)
     if unit is None:
         raise NotFoundError(f"housing unit {unit_id} not found")
-    if _is_source_managed(unit):
-        raise ConflictError(
-            f"housing unit {unit_id} is source-managed and cannot be updated manually"
-        )
     return repo.update(session, unit_id, data)
 
 
 def delete_housing_unit(session: Session, unit_id: int) -> None:
-    """Delete a housing unit by id.
-
-    Raises NotFoundError if the unit does not exist.
-    Raises ConflictError if the unit is source-managed (project_id + building_id both set).
-    """
+    """Delete a housing unit by id. Raises NotFoundError if the unit does not exist."""
     logger.info("delete_housing_unit", extra={"unit_id": unit_id})
     unit = repo.get_by_id(session, unit_id)
     if unit is None:
         raise NotFoundError(f"housing unit {unit_id} not found")
-    if _is_source_managed(unit):
-        raise ConflictError(
-            f"housing unit {unit_id} is source-managed and cannot be deleted manually"
-        )
     repo.delete(session, unit_id)

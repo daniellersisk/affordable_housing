@@ -205,12 +205,9 @@ Geo validation rules:
 
 ### Source-Managed Record Rule
 
-Imported rows with `project_id` and `building_id` are treated as source-managed:
+All rows support full CRUD regardless of source identity. Imported rows (`project_id` + `building_id` set) can be edited or deleted via the API like any other row.
 
-- `PUT` on a source-managed row returns `409`
-- `DELETE` on a source-managed row returns `409`
-
-This avoids confusing overwrite and resurrection behavior during future imports.
+Rationale: nearly all data in the DB will be source-managed after import. Blocking writes on those rows would make `PUT` and `DELETE` effectively unusable. If a recurring import is added in future, the trade-off between API editability and import-refresh consistency can be revisited at that point.
 
 ## Data Model (Initial)
 

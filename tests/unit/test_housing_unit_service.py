@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import NotFoundError
 from app.schemas.filters import HousingUnitFilters
 from app.services import housing_unit_service as service
 
@@ -91,7 +91,7 @@ def test_create_housing_unit_returns_created_unit() -> None:
 
 
 def test_update_housing_unit_returns_updated_unit() -> None:
-    unit = _make_unit(project_id=None, building_id=None)
+    unit = _make_unit()
     updated = _make_unit(street_name="New St")
     session = MagicMock()
     with patch(f"{MODULE}.get_by_id", return_value=unit), \
@@ -107,18 +107,9 @@ def test_update_housing_unit_raises_not_found() -> None:
             service.update_housing_unit(session, 999, {"num_units": 5})
 
 
-def test_update_housing_unit_raises_conflict_for_source_managed() -> None:
-    """rows with both project_id and building_id set must not be updated manually."""
+def test_update_housing_unit_allows_source_managed_rows() -> None:
+    """source-managed rows (project_id + building_id set) can be updated freely."""
     unit = _make_unit(project_id="P1", building_id="B1")
-    session = MagicMock()
-    with patch(f"{MODULE}.get_by_id", return_value=unit):
-        with pytest.raises(ConflictError):
-            service.update_housing_unit(session, 1, {"num_units": 99})
-
-
-def test_update_housing_unit_allows_partial_source_id() -> None:
-    """a row with only project_id (no building_id) is not source-managed."""
-    unit = _make_unit(project_id="P1", building_id=None)
     updated = _make_unit(num_units=99)
     session = MagicMock()
     with patch(f"{MODULE}.get_by_id", return_value=unit), \
@@ -133,7 +124,7 @@ def test_update_housing_unit_allows_partial_source_id() -> None:
 
 
 def test_delete_housing_unit_calls_repo_delete() -> None:
-    unit = _make_unit(project_id=None, building_id=None)
+    unit = _make_unit()
     session = MagicMock()
     with patch(f"{MODULE}.get_by_id", return_value=unit), \
          patch(f"{MODULE}.delete") as mock_delete:
@@ -148,45 +139,11 @@ def test_delete_housing_unit_raises_not_found() -> None:
             service.delete_housing_unit(session, 999)
 
 
-def test_delete_housing_unit_raises_conflict_for_source_managed() -> None:
-    """rows with both project_id and building_id set must not be deleted manually."""
+def test_delete_housing_unit_allows_source_managed_rows() -> None:
+    """source-managed rows (project_id + building_id set) can be deleted freely."""
     unit = _make_unit(project_id="P1", building_id="B1")
-    session = MagicMock()
-    with patch(f"{MODULE}.get_by_id", return_value=unit):
-        with pytest.raises(ConflictError):
-            service.delete_housing_unit(session, 1)
-
-
-def test_delete_housing_unit_allows_partial_source_id() -> None:
-    """a row with only building_id (no project_id) is not source-managed."""
-    unit = _make_unit(project_id=None, building_id="B1")
     session = MagicMock()
     with patch(f"{MODULE}.get_by_id", return_value=unit), \
          patch(f"{MODULE}.delete") as mock_delete:
         service.delete_housing_unit(session, 1)
     mock_delete.assert_called_once_with(session, 1)
-
-
-# ---------------------------------------------------------------------------
-# _is_source_managed
-# ---------------------------------------------------------------------------
-
-
-def test_is_source_managed_true_when_both_ids_set() -> None:
-    unit = _make_unit(project_id="P1", building_id="B1")
-    assert service._is_source_managed(unit) is True
-
-
-def test_is_source_managed_false_when_only_project_id() -> None:
-    unit = _make_unit(project_id="P1", building_id=None)
-    assert service._is_source_managed(unit) is False
-
-
-def test_is_source_managed_false_when_only_building_id() -> None:
-    unit = _make_unit(project_id=None, building_id="B1")
-    assert service._is_source_managed(unit) is False
-
-
-def test_is_source_managed_false_when_neither_set() -> None:
-    unit = _make_unit(project_id=None, building_id=None)
-    assert service._is_source_managed(unit) is False
