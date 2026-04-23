@@ -167,14 +167,18 @@ This keeps the app simple enough for the exercise while still showing explicit p
 - `PUT /housing-units/{id}`
 - `DELETE /housing-units/{id}`
 - `POST /housing-units/{id}/refresh`
+- `POST /housing-units/sync`
 
-### Refresh vs PUT
+### Refresh vs PUT — full mutation reference
 
-These are two distinct operations and must not be conflated:
+| Operation | Endpoint | Socrata? | Payload | Use case |
+|---|---|---|---|---|
+| user edit | `PUT /housing-units/{id}` | no | user data | update any field manually |
+| re-sync one known record | `POST /housing-units/{id}/refresh` | yes | none | refresh a record already in the DB |
+| add/sync by source identity | `POST /housing-units/sync` | yes | `{ project_id, building_id }` | sync one specific Socrata record without a full import |
+| bulk re-sync | `make refresh` / `make import` | yes | none | re-import everything from Socrata |
 
-- `PUT /housing-units/{id}` — user provides a payload; DB is updated with user data; Socrata is never called
-- `POST /housing-units/{id}/refresh` — no payload; Socrata is called using the unit's `project_id` + `building_id`; DB is updated with the latest source data; returns `422` if the unit has no source identity
-- `make refresh` — bulk re-import of all records from Socrata; reuses `upsert_from_source`; safe to run any time the stack is up
+`PUT` never calls Socrata. `/refresh` and `/sync` always call Socrata and never accept a user payload. This keeps user-authored edits and source synchronization as separate, explicit operations.
 
 ### `GET /housing-units` Filters
 

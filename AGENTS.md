@@ -176,13 +176,19 @@ When QA review is requested, use `agents/qa.mdc` and validate:
 - `POST /housing-units`
 - `PUT /housing-units/{id}`
 - `DELETE /housing-units/{id}`
-- `POST /housing-units/{id}/refresh` — pull latest data for one record from Socrata by its source identity (`project_id` + `building_id`) and upsert it back into the DB. No request body. Returns `404` if the unit does not exist, `422` if the unit has no source identity. This is distinct from `PUT` which applies a user-provided payload — refresh always pulls from Socrata.
+- `POST /housing-units/{id}/refresh` — re-sync one existing record from Socrata using its `project_id` + `building_id`. No request body. Returns `404` if the unit does not exist, `422` if the unit has no source identity.
+- `POST /housing-units/sync` — fetch and upsert a specific Socrata record by source identity. Body: `{ project_id, building_id }`. Inserts if not yet in DB, updates if already present. Use this to add or re-sync a single record without running a full import.
 
-### Refresh vs PUT distinction
+### Mutation operations — full reference
 
-- `PUT /housing-units/{id}` — user provides payload, DB is updated with user data, Socrata is never called
-- `POST /housing-units/{id}/refresh` — no payload, Socrata is called using the unit's `project_id` + `building_id`, DB is updated with source data
-- `make refresh` / `make import` — bulk re-import of all records from Socrata via `upsert_from_source`, reuses the same ingestion path as the initial import
+| Operation | Endpoint | Socrata? | Payload | Use case |
+|---|---|---|---|---|
+| user edit | `PUT /housing-units/{id}` | no | user data | update any field manually |
+| re-sync one known record | `POST /housing-units/{id}/refresh` | yes | none | refresh a record already in the DB |
+| add/sync by source identity | `POST /housing-units/sync` | yes | `{ project_id, building_id }` | sync one specific Socrata record without a full import |
+| bulk re-sync | `make refresh` / `make import` | yes | none | re-import everything from Socrata |
+
+Both `/refresh` and `/sync` depend on the Socrata client (Phase 4) and land in the same change set.
 
 ## Definition of Done
 
