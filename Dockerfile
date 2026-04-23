@@ -13,8 +13,9 @@ COPY tests ./tests
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY entrypoint.sh ./
+COPY migrate.sh ./
 COPY README.md ./
 
-RUN chmod +x entrypoint.sh
+RUN chmod +x entrypoint.sh migrate.sh
 
 CMD ["bash", "entrypoint.sh"]
