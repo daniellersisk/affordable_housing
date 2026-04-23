@@ -166,6 +166,15 @@ This keeps the app simple enough for the exercise while still showing explicit p
 - `POST /housing-units`
 - `PUT /housing-units/{id}`
 - `DELETE /housing-units/{id}`
+- `POST /housing-units/{id}/refresh`
+
+### Refresh vs PUT
+
+These are two distinct operations and must not be conflated:
+
+- `PUT /housing-units/{id}` — user provides a payload; DB is updated with user data; Socrata is never called
+- `POST /housing-units/{id}/refresh` — no payload; Socrata is called using the unit's `project_id` + `building_id`; DB is updated with the latest source data; returns `422` if the unit has no source identity
+- `make refresh` — bulk re-import of all records from Socrata; reuses `upsert_from_source`; safe to run any time the stack is up
 
 ### `GET /housing-units` Filters
 

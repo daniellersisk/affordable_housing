@@ -176,6 +176,13 @@ When QA review is requested, use `agents/qa.mdc` and validate:
 - `POST /housing-units`
 - `PUT /housing-units/{id}`
 - `DELETE /housing-units/{id}`
+- `POST /housing-units/{id}/refresh` — pull latest data for one record from Socrata by its source identity (`project_id` + `building_id`) and upsert it back into the DB. No request body. Returns `404` if the unit does not exist, `422` if the unit has no source identity. This is distinct from `PUT` which applies a user-provided payload — refresh always pulls from Socrata.
+
+### Refresh vs PUT distinction
+
+- `PUT /housing-units/{id}` — user provides payload, DB is updated with user data, Socrata is never called
+- `POST /housing-units/{id}/refresh` — no payload, Socrata is called using the unit's `project_id` + `building_id`, DB is updated with source data
+- `make refresh` / `make import` — bulk re-import of all records from Socrata via `upsert_from_source`, reuses the same ingestion path as the initial import
 
 ## Definition of Done
 

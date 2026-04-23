@@ -32,3 +32,5 @@ migrate: .env
 
 import: .env
 	docker compose run --rm api python -m app.scripts.import_nyc_data
+
+refresh: import
