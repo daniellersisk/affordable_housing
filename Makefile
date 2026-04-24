@@ -31,6 +31,8 @@ migrate: .env
 	docker compose run --rm api alembic upgrade head
 
 import: .env
-	docker compose run --rm api python -m app.scripts.import_nyc_data
+	docker compose run --rm api python -m app.scripts.import_nyc_data $(ARGS)
+
+bootstrap: migrate import  ## first-time setup: run migrations then seed all data from Socrata
 
 refresh: import
