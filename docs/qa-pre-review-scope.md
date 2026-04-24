@@ -4,7 +4,7 @@ This document is intended to make review efficient by clarifying:
 
 - what is **in scope** for this preliminary review
 - what is **implemented** vs **intentionally deferred**
-- what reviewers should **not** spend time evaluating yet
+- known gaps that are **required** but not finished yet
 
 ## Review focus (please review now)
 
@@ -32,6 +32,10 @@ This document is intended to make review efficient by clarifying:
   - `README.md` reflects what is implemented and how to run/test it
   - Reviewer notes reflect intentional trade-offs and current behavior
 
+- **Test/contract completeness (required)**
+  - Per-endpoint coverage: success, validation failure, not-found/conflict, auth failure (where applicable)
+  - Contract coverage: status codes, response schemas, and consistent error schema `{ code, message, details }`
+
 ## Implemented (current baseline)
 
 - Dockerized FastAPI + Postgres stack; migrations apply on startup (idempotent)
@@ -42,7 +46,7 @@ This document is intended to make review efficient by clarifying:
 - Documentation updates for reviewers and runbook clarity
 - Automation: scheduled repo-health report PR generation
 
-## Intentionally deferred (do not block this review)
+## Intentionally deferred (safe to defer for *this* pre-review)
 
 - **RBAC / least-privilege roles**
   - Current write access is a single `X-API-Key` gate (no viewer/editor/admin model yet)
@@ -52,13 +56,13 @@ This document is intended to make review efficient by clarifying:
   - Circle filtering is currently a bounding-box approximation
   - Future work: PostGIS (e.g., `ST_DWithin`) + spatial index and exact distance semantics
 
-- **Expanded test completeness / contract coverage**
-  - Future work: ensure every endpoint has tests for:
-    - success
-    - validation failure
-    - not-found/conflict (as applicable)
-    - auth failure (where applicable)
-  - Future work: contract tests that assert error schemas consistently across all endpoints
+## Required but in-progress (please review gaps; do not assume complete yet)
+
+- **Endpoint tests (coverage expansion)**
+  - Goal: every route has tests for success, validation failure, not-found/conflict, and auth failure (where applicable)
+
+- **Contract tests (error schema consistency)**
+  - Goal: consistent `{ code, message, details }` assertions across all endpoints for 4xx/5xx responses
 
 - **Production hardening**
   - Rate limiting / throttling strategy (`429` contract)
