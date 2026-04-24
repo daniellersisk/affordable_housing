@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.core.constants import GeoShape
+from app.core.constants import Borough, GeoShape
 
 Latitude = Annotated[Decimal, Field(ge=Decimal("-90.000000"), le=Decimal("90.000000"))]
 Longitude = Annotated[Decimal, Field(ge=Decimal("-180.000000"), le=Decimal("180.000000"))]
@@ -20,7 +20,7 @@ class HousingUnitFilters(BaseModel):
     """Query parameters for GET /housing-units."""
 
     street_name: str | None = None
-    borough: str | None = None
+    borough: Borough | None = None
     postcode: str | None = None
     construction_type: str | None = None
     num_units_min: int | None = Field(default=None, ge=1)
@@ -42,6 +42,11 @@ class HousingUnitFilters(BaseModel):
     # pagination
     limit: int = 100
     offset: int = 0
+
+    @field_validator("borough", mode="before")
+    @classmethod
+    def normalize_borough(cls, v: str | None) -> str | None:
+        return v.upper() if v is not None else v
 
     @field_validator("postcode")
     @classmethod

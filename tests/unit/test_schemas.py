@@ -107,6 +107,21 @@ def test_create_negative_num_units_raises() -> None:
         HousingUnitCreate(num_units=-1)
 
 
+def test_create_invalid_borough_raises() -> None:
+    with pytest.raises(ValidationError):
+        HousingUnitCreate(num_units=10, borough="NEW JERSEY")
+
+
+def test_create_valid_borough() -> None:
+    body = HousingUnitCreate(num_units=10, borough="MANHATTAN")
+    assert body.borough == "MANHATTAN"
+
+
+def test_create_street_name_too_long_raises() -> None:
+    with pytest.raises(ValidationError):
+        HousingUnitCreate(num_units=10, street_name="A" * 201)
+
+
 def test_create_postcode_non_numeric_raises() -> None:
     with pytest.raises(ValidationError):
         HousingUnitCreate(num_units=10, postcode="1001A")

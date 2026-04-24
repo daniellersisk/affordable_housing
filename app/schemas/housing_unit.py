@@ -6,6 +6,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.core.constants import Borough
+
 # latitude and longitude are stored as Numeric(9,6) in postgres — 9 total digits, 6 after
 # the decimal point. valid ranges are -90/90 for lat and -180/180 for lon.
 #
@@ -29,8 +31,8 @@ def _validate_postcode(value: str | None) -> str | None:
 class HousingUnitCreate(BaseModel):
     """Request body for POST /housing-units."""
 
-    street_name: str | None = None
-    borough: str | None = None
+    street_name: str | None = Field(default=None, max_length=200)
+    borough: Borough | None = None
     postcode: str | None = None
     construction_type: str | None = None
     num_units: int = Field(..., ge=0, description="must be zero or greater")
@@ -38,6 +40,11 @@ class HousingUnitCreate(BaseModel):
     longitude: Longitude | None = None
     project_id: str | None = None
     building_id: str | None = None
+
+    @field_validator("borough", mode="before")
+    @classmethod
+    def normalize_borough(cls, v: str | None) -> str | None:
+        return v.upper() if v is not None else v
 
     @field_validator("postcode")
     @classmethod
@@ -48,13 +55,18 @@ class HousingUnitCreate(BaseModel):
 class HousingUnitUpdate(BaseModel):
     """Request body for PUT /housing-units/{id}."""
 
-    street_name: str | None = None
-    borough: str | None = None
+    street_name: str | None = Field(default=None, max_length=200)
+    borough: Borough | None = None
     postcode: str | None = None
     construction_type: str | None = None
     num_units: int | None = Field(default=None, ge=0)
     latitude: Latitude | None = None
     longitude: Longitude | None = None
+
+    @field_validator("borough", mode="before")
+    @classmethod
+    def normalize_borough(cls, v: str | None) -> str | None:
+        return v.upper() if v is not None else v
 
     @field_validator("postcode")
     @classmethod
@@ -71,7 +83,7 @@ class HousingUnitResponse(BaseModel):
     project_id: str | None
     building_id: str | None
     street_name: str | None
-    borough: str | None
+    borough: str | None  # str not Borough enum — reads must not fail on legacy/imported values
     postcode: str | None
     construction_type: str | None
     num_units: int

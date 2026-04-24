@@ -12,6 +12,16 @@ class GeoShape(str, Enum):
     CIRCLE = "circle"
 
 
+class Borough(str, Enum):
+    """Valid NYC borough values."""
+
+    MANHATTAN = "MANHATTAN"
+    BROOKLYN = "BROOKLYN"
+    QUEENS = "QUEENS"
+    BRONX = "BRONX"
+    STATEN_ISLAND = "STATEN ISLAND"
+
+
 SOURCE_IDENTITY_CONSTRAINT = "uq_housing_units_project_building"
 
 
