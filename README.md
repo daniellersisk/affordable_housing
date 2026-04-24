@@ -55,6 +55,19 @@ cp .env.example .env
 make up
 ```
 
+## Read-only access (interview reviewers)
+
+If you are reviewing this repository and were given a **short-lived, repo-scoped, read-only** GitHub fine-grained personal access token (PAT), you can clone the private repo using:
+
+```bash
+git clone https://daniellesisk:<TOKEN>@github.com/daniellesisk/affordable_housing.git
+```
+
+Notes:
+
+- Do not share the token in screenshots, logs, or shell history.
+- The token should expire automatically; it may also be revoked at any time after review.
+
 Then open:
 
 - Swagger docs: `http://localhost:8000/docs`
@@ -70,14 +83,14 @@ Startup sequence:
 - FastAPI binds to `0.0.0.0` and is reachable on localhost
 
 > **The database starts empty.** `make up` does not load NYC housing data automatically.
-> After the stack is running, seed the database with the NYC Open Data records (currently ~12.8k rows):
+> After the stack is running, seed the database with the NYC Open Data records (dataset size changes over time):
 >
 > ```bash
 > make import
 > ```
 >
 > This is intentional — the import takes a few minutes and is not required for local development or running tests.
-> Re-running `make import` is safe (idempotent upsert). To preview what would be imported without writing anything:
+> Re-running `make import` is safe (idempotent upsert). Import idempotency is keyed off **Socrata’s system row id** `:id` (stored in Postgres as `housing_units.socrata_row_id`, i.e. the Socrata ID for that upstream row). To preview what would be imported without writing anything:
 >
 > ```bash
 > make import ARGS=--dry-run
@@ -1036,7 +1049,7 @@ Once Step 6 lands, populate the database with NYC open data:
 docker compose run --rm api python -m app.scripts.import_nyc_data
 ```
 
-Run this once. The named volume persists the data across all subsequent starts — you do not need to re-import unless you explicitly wipe the volume with `docker compose down -v`. Re-running the import is always safe: `upsert_from_source` is idempotent on `(project_id, building_id)` so no duplicate rows will be created.
+Run this once. The named volume persists the data across all subsequent starts — you do not need to re-import unless you explicitly wipe the volume with `docker compose down -v`. Re-running the import is always safe: `upsert_from_source` is idempotent on the **Socrata ID** (`:id`, stored as `housing_units.socrata_row_id`) so no duplicate rows will be created.
 
 ### 6. Tear down
 

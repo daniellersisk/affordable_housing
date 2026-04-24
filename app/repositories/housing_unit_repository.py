@@ -9,7 +9,12 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.constants import SOURCE_IDENTITY_CONSTRAINT, GeoShape, SortOrder
+from app.core.constants import (
+    SOCRATA_ROW_IDENTITY_CONSTRAINT,
+    SOURCE_IDENTITY_CONSTRAINT,
+    GeoShape,
+    SortOrder,
+)
 from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.models.housing_unit import HousingUnit
@@ -137,43 +142,83 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
     Normalizes source field names at write time (total_units -> num_units).
     Sets last_synced_from_socrata to the current UTC time on every upsert.
     Uses INSERT ... ON CONFLICT on (project_id, building_id) to update existing rows.
-    Returns the number of rows attempted.
+    Returns the number of rows upsert-attempted (only records with a complete
+    (project_id, building_id) composite identity are eligible).
     """
     if not records:
         return 0
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    normalized = [
-        {**_normalize_source_record(r), "last_synced_from_socrata": now}
-        for r in records
-    ]
 
-    stmt = pg_insert(HousingUnit).values(normalized)
-    stmt = stmt.on_conflict_do_update(
-        constraint=SOURCE_IDENTITY_CONSTRAINT,
-        set_={
-            "street_name": stmt.excluded.street_name,
-            "borough": stmt.excluded.borough,
-            "postcode": stmt.excluded.postcode,
-            "construction_type": stmt.excluded.construction_type,
-            "num_units": stmt.excluded.num_units,
-            "latitude": stmt.excluded.latitude,
-            "longitude": stmt.excluded.longitude,
-            "last_synced_from_socrata": stmt.excluded.last_synced_from_socrata,
-            # updated_at is not set by the ORM's onupdate for raw SQL upserts —
-            # set it explicitly so every import run stamps the row's modification time.
-            "updated_at": func.now(),
-        },
-    )
+    # Strategy:
+    # - If a record has (project_id, building_id), upsert on that composite identity.
+    #   This ensures refresh updates the existing row even if socrata_row_id was not yet stored.
+    # - Otherwise, upsert on Socrata system row id (":id").
+    by_source_identity = [r for r in records if _has_complete_source_identity(r)]
+    remainder = [r for r in records if r not in by_source_identity]
+    by_socrata_id = [r for r in remainder if _has_socrata_row_id(r)]
+    skipped = len(records) - len(by_source_identity) - len(by_socrata_id)
+    if skipped:
+        logger.warning(
+            "skipping source records missing both composite source ids and socrata :id",
+            extra={"skipped": skipped, "received": len(records)},
+        )
+
+    total_attempted = 0
 
     try:
-        session.execute(stmt)
+        if by_source_identity:
+            normalized = [
+                {**_normalize_source_record(r), "last_synced_from_socrata": now}
+                for r in by_source_identity
+            ]
+            stmt = pg_insert(HousingUnit).values(normalized)
+            stmt = stmt.on_conflict_do_update(
+                constraint=SOURCE_IDENTITY_CONSTRAINT,
+                set_={
+                    "socrata_row_id": stmt.excluded.socrata_row_id,
+                    "street_name": stmt.excluded.street_name,
+                    "borough": stmt.excluded.borough,
+                    "postcode": stmt.excluded.postcode,
+                    "construction_type": stmt.excluded.construction_type,
+                    "num_units": stmt.excluded.num_units,
+                    "latitude": stmt.excluded.latitude,
+                    "longitude": stmt.excluded.longitude,
+                    "last_synced_from_socrata": stmt.excluded.last_synced_from_socrata,
+                    "updated_at": func.now(),
+                },
+            )
+            session.execute(stmt)
+            total_attempted += len(normalized)
+
+        if by_socrata_id:
+            normalized = [
+                {**_normalize_source_record(r), "last_synced_from_socrata": now}
+                for r in by_socrata_id
+            ]
+            stmt = pg_insert(HousingUnit).values(normalized)
+            stmt = stmt.on_conflict_do_update(
+                constraint=SOCRATA_ROW_IDENTITY_CONSTRAINT,
+                set_={
+                    "project_id": stmt.excluded.project_id,
+                    "building_id": stmt.excluded.building_id,
+                    "street_name": stmt.excluded.street_name,
+                    "borough": stmt.excluded.borough,
+                    "postcode": stmt.excluded.postcode,
+                    "construction_type": stmt.excluded.construction_type,
+                    "num_units": stmt.excluded.num_units,
+                    "latitude": stmt.excluded.latitude,
+                    "longitude": stmt.excluded.longitude,
+                    "last_synced_from_socrata": stmt.excluded.last_synced_from_socrata,
+                    "updated_at": func.now(),
+                },
+            )
+            session.execute(stmt)
+            total_attempted += len(normalized)
+
         session.flush()
-        # rowcount is unreliable for INSERT ON CONFLICT in psycopg (-1 is common);
-        # return the number of records attempted instead
-        count = len(normalized)
-        logger.info("upserted records from source", extra={"count": count})
-        return count
+        logger.info("upserted records from source", extra={"count": total_attempted})
+        return total_attempted
     except SQLAlchemyError as exc:
         logger.error("upsert_from_source failed", extra={"error": str(exc)})
         raise
@@ -204,6 +249,7 @@ def _normalize_source_record(record: dict[str, Any]) -> dict[str, Any]:
     return {
         "project_id": record.get("project_id") or None,
         "building_id": record.get("building_id") or None,
+        "socrata_row_id": record.get(":id") or None,
         "street_name": record.get("street_name") or None,
         "postcode": record.get("postcode") or None,
         "latitude": record.get("latitude") or None,
@@ -213,6 +259,22 @@ def _normalize_source_record(record: dict[str, Any]) -> dict[str, Any]:
         "borough": borough.upper() if borough else None,
     }
 
+
+def _has_socrata_row_id(record: dict[str, Any]) -> bool:
+    rid = record.get(":id")
+    if rid is None:
+        return False
+    return str(rid).strip() != ""
+
+
+def _has_complete_source_identity(record: dict[str, Any]) -> bool:
+    project_id = record.get("project_id")
+    building_id = record.get("building_id")
+    if project_id is None or building_id is None:
+        return False
+    if str(project_id).strip() == "" or str(building_id).strip() == "":
+        return False
+    return True
 
 def _apply_rectangle_filter(stmt: Any, filters: HousingUnitFilters) -> Any:
     """Apply a bounding box WHERE clause for geo_shape=rectangle."""

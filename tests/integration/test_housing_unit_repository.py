@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.constants import GeoShape
@@ -236,8 +237,20 @@ def test_delete_raises_not_found(db_session: Session) -> None:
 @pytest.mark.integration
 def test_upsert_from_source_inserts_new_records(db_session: Session) -> None:
     records = [
-        {"project_id": "P10", "building_id": "B10", "num_units": 15, "borough": "QUEENS"},
-        {"project_id": "P11", "building_id": "B11", "num_units": 25, "borough": "BRONX"},
+        {
+            ":id": "10",
+            "project_id": "P10",
+            "building_id": "B10",
+            "num_units": 15,
+            "borough": "QUEENS",
+        },
+        {
+            ":id": "11",
+            "project_id": "P11",
+            "building_id": "B11",
+            "num_units": 25,
+            "borough": "BRONX",
+        },
     ]
     count = repo.upsert_from_source(db_session, records)
     assert count == 2
@@ -246,7 +259,7 @@ def test_upsert_from_source_inserts_new_records(db_session: Session) -> None:
 @pytest.mark.integration
 def test_upsert_from_source_normalizes_total_units(db_session: Session) -> None:
     """total_units from source is normalized to num_units at write time."""
-    records = [{"project_id": "P20", "building_id": "B20", "total_units": 42}]
+    records = [{":id": "20", "project_id": "P20", "building_id": "B20", "total_units": 42}]
     repo.upsert_from_source(db_session, records)
 
     results = repo.list_with_filters(
@@ -258,10 +271,12 @@ def test_upsert_from_source_normalizes_total_units(db_session: Session) -> None:
 @pytest.mark.integration
 def test_upsert_from_source_is_idempotent(db_session: Session) -> None:
     """Re-running upsert on same source ids updates the row, not duplicates it."""
-    records = [{"project_id": "P30", "building_id": "B30", "total_units": "10"}]
+    records = [{":id": "30", "project_id": "P30", "building_id": "B30", "total_units": "10"}]
     repo.upsert_from_source(db_session, records)
 
-    updated_records = [{"project_id": "P30", "building_id": "B30", "total_units": "99"}]
+    updated_records = [
+        {":id": "30", "project_id": "P30", "building_id": "B30", "total_units": "99"}
+    ]
     repo.upsert_from_source(db_session, updated_records)
 
     # use get_by_source_identity to find the row directly — avoids pagination limits
@@ -274,3 +289,16 @@ def test_upsert_from_source_is_idempotent(db_session: Session) -> None:
 def test_upsert_from_source_empty_list_returns_zero(db_session: Session) -> None:
     count = repo.upsert_from_source(db_session, [])
     assert count == 0
+
+
+@pytest.mark.integration
+def test_upsert_from_source_allows_missing_building_id_when_socrata_id_present(
+    db_session: Session,
+) -> None:
+    records = [{":id": "40", "project_id": "P40", "building_id": None, "total_units": "10"}]
+    count = repo.upsert_from_source(db_session, records)
+    assert count == 1
+    stmt = select(HousingUnit).where(HousingUnit.socrata_row_id == "40")
+    unit = db_session.execute(stmt).scalar_one_or_none()
+    assert unit is not None
+    assert unit.project_id == "P40"

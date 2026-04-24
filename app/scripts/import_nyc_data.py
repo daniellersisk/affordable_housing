@@ -6,7 +6,7 @@
 #   docker compose run --rm api python -m app.scripts.import_nyc_data --dry-run
 #
 # Idempotent: re-running does not duplicate records — upsert merges on
-# (project_id, building_id). Each page is committed independently so a
+# Socrata system id (":id") stored as socrata_row_id. Each page is committed independently so a
 # mid-run failure leaves already-processed pages intact.
 from __future__ import annotations
 
@@ -37,19 +37,31 @@ def main(dry_run: bool = False) -> None:
 
     session = SessionLocal()
     total_upserted = 0
+    total_received = 0
+    total_skipped = 0
     pages_processed = 0
     errors = 0
 
     try:
         for page in client.get_all():
             pages_processed += 1
+            received = len(page)
+            total_received += received
             try:
                 count = repo.upsert_from_source(session, page)
                 session.commit()
                 total_upserted += count
+                skipped = received - count
+                total_skipped += skipped
                 logger.info(
                     "page committed",
-                    extra={"page": pages_processed, "records": count, "total": total_upserted},
+                    extra={
+                        "page": pages_processed,
+                        "received": received,
+                        "upserted": count,
+                        "skipped": skipped,
+                        "total_upserted": total_upserted,
+                    },
                 )
             except Exception as exc:
                 session.rollback()
@@ -66,7 +78,13 @@ def main(dry_run: bool = False) -> None:
 
     logger.info(
         "import complete",
-        extra={"pages": pages_processed, "total_upserted": total_upserted, "errors": errors},
+        extra={
+            "pages": pages_processed,
+            "total_received": total_received,
+            "total_upserted": total_upserted,
+            "total_skipped": total_skipped,
+            "errors": errors,
+        },
     )
 
     if errors:
@@ -114,7 +132,8 @@ def _run_dry(client: SocrataClient) -> None:
     print(f"--- Sample records (first {_DRY_RUN_PREVIEW_COUNT}) ---")
     for i, rec in enumerate(page[:_DRY_RUN_PREVIEW_COUNT], 1):
         print(
-            f"  [{i}] project_id={rec.get('project_id')!r}"
+            f"  [{i}] socrata_row_id={rec.get(':id')!r}"
+            f"  project_id={rec.get('project_id')!r}"
             f"  building_id={rec.get('building_id')!r}"
             f"  total_units={rec.get('total_units')!r}"
             f"  borough={rec.get('borough')!r}"

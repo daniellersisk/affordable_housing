@@ -23,6 +23,7 @@ class Borough(str, Enum):
 
 
 SOURCE_IDENTITY_CONSTRAINT = "uq_housing_units_project_building"
+SOCRATA_ROW_IDENTITY_CONSTRAINT = "uq_housing_units_socrata_row_id"
 
 
 class SortField(str, Enum):
