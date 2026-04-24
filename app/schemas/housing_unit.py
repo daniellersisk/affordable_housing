@@ -2,8 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# latitude: -90.0 to 90.0, 6 decimal places (matches DB Numeric(9,6))
+Latitude = Annotated[Decimal, Field(ge=Decimal("-90.000000"), le=Decimal("90.000000"))]
+# longitude: -180.0 to 180.0, 6 decimal places (matches DB Numeric(9,6))
+Longitude = Annotated[Decimal, Field(ge=Decimal("-180.000000"), le=Decimal("180.000000"))]
 
 
 def _validate_postcode(value: str | None) -> str | None:
@@ -20,8 +26,8 @@ class HousingUnitCreate(BaseModel):
     postcode: str | None = None
     construction_type: str | None = None
     num_units: int = Field(..., ge=0, description="must be zero or greater")
-    latitude: Decimal | None = None
-    longitude: Decimal | None = None
+    latitude: Latitude | None = None
+    longitude: Longitude | None = None
     project_id: str | None = None
     building_id: str | None = None
 
@@ -39,8 +45,8 @@ class HousingUnitUpdate(BaseModel):
     postcode: str | None = None
     construction_type: str | None = None
     num_units: int | None = Field(default=None, ge=0)
-    latitude: Decimal | None = None
-    longitude: Decimal | None = None
+    latitude: Latitude | None = None
+    longitude: Longitude | None = None
 
     @field_validator("postcode")
     @classmethod
@@ -61,8 +67,8 @@ class HousingUnitResponse(BaseModel):
     postcode: str | None
     construction_type: str | None
     num_units: int
-    latitude: Decimal | None
-    longitude: Decimal | None
+    latitude: Latitude | None
+    longitude: Longitude | None
     created_at: datetime
     updated_at: datetime
 

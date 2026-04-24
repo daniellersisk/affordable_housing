@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.constants import GeoShape
+
+Latitude = Annotated[Decimal, Field(ge=Decimal("-90.000000"), le=Decimal("90.000000"))]
+Longitude = Annotated[Decimal, Field(ge=Decimal("-180.000000"), le=Decimal("180.000000"))]
 
 # pydantic model used for both route-level query param parsing/validation
 # and repository filter composition. the model_validator enforces that
@@ -25,14 +29,14 @@ class HousingUnitFilters(BaseModel):
     geo_shape: GeoShape | None = None
 
     # rectangle params
-    min_lat: Decimal | None = None
-    max_lat: Decimal | None = None
-    min_lon: Decimal | None = None
-    max_lon: Decimal | None = None
+    min_lat: Latitude | None = None
+    max_lat: Latitude | None = None
+    min_lon: Longitude | None = None
+    max_lon: Longitude | None = None
 
     # circle params
-    center_lat: Decimal | None = None
-    center_lon: Decimal | None = None
+    center_lat: Latitude | None = None
+    center_lon: Longitude | None = None
     radius_m: float | None = None
 
     # pagination
