@@ -177,24 +177,38 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
 
 
 def _normalize_source_record(record: dict[str, Any]) -> dict[str, Any]:
-    """Map source field names to internal field names at write time.
+    """Map source field names to internal field names and strip unknown fields.
+
+    Socrata returns ~35 fields; we only persist the ones that have model columns.
+    Unknown source fields are silently dropped — this keeps the upsert safe when
+    the upstream dataset adds new columns.
+
+    Every returned dict has exactly the same set of keys regardless of what the
+    source record contains. Missing source fields become None. This is required
+    for SQLAlchemy's batch INSERT — all rows in a VALUES list must share the same
+    columns or the compile step raises CompileError.
 
     Socrata field → internal field:
-      total_units              → num_units (int cast required — source sends strings)
+      total_units                 → num_units (int cast — source sends strings)
       reporting_construction_type → construction_type
-      borough                  → borough (normalize to uppercase for Borough enum)
+      borough                     → borough (uppercased)
 
-    All other used fields (project_id, building_id, street_name, postcode,
-    latitude, longitude) share names with the internal schema.
+    Kept as-is: project_id, building_id, street_name, postcode, latitude, longitude.
     """
-    normalized = dict(record)
-    if "total_units" in normalized:
-        normalized["num_units"] = int(normalized.pop("total_units"))
-    if "reporting_construction_type" in normalized:
-        normalized["construction_type"] = normalized.pop("reporting_construction_type")
-    if "borough" in normalized and normalized["borough"]:
-        normalized["borough"] = normalized["borough"].upper()
-    return normalized
+    raw_total = record.get("total_units")
+    borough = record.get("borough")
+
+    return {
+        "project_id": record.get("project_id") or None,
+        "building_id": record.get("building_id") or None,
+        "street_name": record.get("street_name") or None,
+        "postcode": record.get("postcode") or None,
+        "latitude": record.get("latitude") or None,
+        "longitude": record.get("longitude") or None,
+        "num_units": int(raw_total) if raw_total not in (None, "") else 0,
+        "construction_type": record.get("reporting_construction_type") or None,
+        "borough": borough.upper() if borough else None,
+    }
 
 
 def _apply_rectangle_filter(stmt: Any, filters: HousingUnitFilters) -> Any:

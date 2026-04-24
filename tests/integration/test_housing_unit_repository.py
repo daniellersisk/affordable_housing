@@ -257,17 +257,17 @@ def test_upsert_from_source_normalizes_total_units(db_session: Session) -> None:
 
 @pytest.mark.integration
 def test_upsert_from_source_is_idempotent(db_session: Session) -> None:
-    """Re-running upsert on same source ids does not create duplicate rows."""
-    records = [{"project_id": "P30", "building_id": "B30", "num_units": 10}]
+    """Re-running upsert on same source ids updates the row, not duplicates it."""
+    records = [{"project_id": "P30", "building_id": "B30", "total_units": "10"}]
     repo.upsert_from_source(db_session, records)
 
-    updated_records = [{"project_id": "P30", "building_id": "B30", "num_units": 99}]
+    updated_records = [{"project_id": "P30", "building_id": "B30", "total_units": "99"}]
     repo.upsert_from_source(db_session, updated_records)
 
-    results = repo.list_with_filters(db_session, HousingUnitFilters())
-    matching = [r for r in results if r.project_id == "P30" and r.building_id == "B30"]
-    assert len(matching) == 1
-    assert matching[0].num_units == 99
+    # use get_by_source_identity to find the row directly — avoids pagination limits
+    unit = repo.get_by_source_identity(db_session, "P30", "B30")
+    assert unit is not None
+    assert unit.num_units == 99
 
 
 @pytest.mark.integration

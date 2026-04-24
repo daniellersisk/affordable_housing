@@ -49,11 +49,17 @@ def test_normalize_source_record_preserves_other_fields() -> None:
     assert result["project_id"] == "P1"
 
 
-def test_normalize_source_record_no_total_units_unchanged() -> None:
-    """Records without total_units are returned as-is."""
-    record = {"project_id": "P1", "building_id": "B1", "num_units": 5}
+def test_normalize_source_record_no_total_units_defaults_num_units_to_zero() -> None:
+    """Records without total_units produce num_units=0 and a full fixed-key shape."""
+    record = {"project_id": "P1", "building_id": "B1"}
     result = _normalize_source_record(record)
-    assert result == record
+    assert result["num_units"] == 0
+    assert result["project_id"] == "P1"
+    assert result["building_id"] == "B1"
+    # all 9 model keys are always present
+    for key in ("project_id", "building_id", "street_name", "postcode",
+                "latitude", "longitude", "num_units", "construction_type", "borough"):
+        assert key in result
 
 
 def test_normalize_source_record_does_not_mutate_input() -> None:
