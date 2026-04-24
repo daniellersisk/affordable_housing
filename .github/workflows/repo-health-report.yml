@@ -1,0 +1,145 @@
+name: Repo health report (automated)
+
+on:
+  schedule:
+    # Every Monday at 9am UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  repo-health:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create .env from example
+        run: cp .env.example .env
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Run lint (capture output)
+        run: |
+          set +e
+          make lint > /tmp/lint.txt 2>&1
+          echo $? > /tmp/lint.exit
+          set -e
+
+      - name: Run tests (capture output)
+        run: |
+          set +e
+          make test > /tmp/test.txt 2>&1
+          echo $? > /tmp/test.exit
+          set -e
+
+      - name: Install Cursor CLI
+        run: |
+          curl -fsS https://cursor.com/install | bash
+          if ! command -v agent >/dev/null 2>&1; then
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
+          fi
+          agent --version
+
+      - name: Generate repo health report (report-only)
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          PROMPT="$(cat <<'EOF'
+You are running a scheduled repo-wide maintenance review for the `affordable_housing` repository.
+
+Non-negotiables:
+- REPORT-ONLY. Do NOT change any code, tests, configs, or docs besides creating/updating ONLY `docs/repo-health-report.md`.
+- Do NOT run any commands. Do NOT run tests. Use ONLY the provided CI outputs plus static repository inspection.
+
+Inputs from CI:
+- make lint exit code: __LINT_EXIT__
+- make test exit code: __TEST_EXIT__
+
+Lint output (first ~200 lines):
+__LINT_OUTPUT__
+
+Test output (first ~200 lines):
+__TEST_OUTPUT__
+
+Tasks:
+- Review the repository holistically on `main` (not limited to a PR diff).
+- Scan for accidentally committed secrets/credentials.
+- Validate standards:
+  - routes → services → repositories layering; repositories only touch SQLAlchemy
+  - services do not import FastAPI/HTTPException/Request; services raise typed domain errors
+  - only `app/settings.py` reads env vars; other modules import settings
+  - avoid magic strings/numbers; use constants/enums
+  - type hints on public interfaces
+- Review Alembic migrations for safety/idempotence and downgrade correctness.
+- Identify test gaps and risky patterns.
+
+Output:
+- Write/update `docs/repo-health-report.md` with:
+
+## Repo Health Report
+Date: <today>
+
+## Summary
+- <3-6 bullets>
+
+## Checks Run
+- make lint (exit=<...>)
+- make test (exit=<...>)
+
+## Findings (prioritized)
+### P0 (must fix)
+- ...
+### P1 (should fix)
+- ...
+### P2 (nice to have)
+- ...
+
+## Suggested next actions
+- <concrete next steps>
+
+Remember: only modify `docs/repo-health-report.md`.
+EOF
+)"
+
+          PROMPT="${PROMPT/__LINT_EXIT__/$(cat /tmp/lint.exit)}"
+          PROMPT="${PROMPT/__TEST_EXIT__/$(cat /tmp/test.exit)}"
+          PROMPT="${PROMPT/__LINT_OUTPUT__/$(sed -n '1,200p' /tmp/lint.txt)}"
+          PROMPT="${PROMPT/__TEST_OUTPUT__/$(sed -n '1,200p' /tmp/test.txt)}"
+
+          agent -p --trust --output-format text "$PROMPT"
+
+      - name: Ensure only the report file changed
+        run: |
+          git status --porcelain
+          CHANGED="$(git status --porcelain | awk '{print $2}' | tr '\n' ' ')"
+          if [ "$CHANGED" = "" ]; then
+            echo "No changes produced; nothing to PR."
+            exit 0
+          fi
+          if [ "$CHANGED" != "docs/repo-health-report.md " ]; then
+            echo "ERROR: Unexpected files changed: $CHANGED"
+            exit 1
+          fi
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: Repo health report (automated)
+          commit-message: "docs: repo health report (automated)"
+          branch: automation/repo-health-report
+          delete-branch: true
+          body: |
+            ## Summary
+            Automated scheduled repo-wide health report.
+
+            ## Included
+            - `docs/repo-health-report.md`
