@@ -49,7 +49,7 @@ def test_create_read_update_delete_lifecycle(client: TestClient, auth_headers: d
 
 @pytest.mark.e2e
 def test_list_filters_by_borough(client: TestClient, auth_headers: dict) -> None:
-    """Created records are filterable by borough."""
+    """borough filter is case-insensitive."""
     client.post(
         "/v1/housing-units",
         json={"num_units": 10, "borough": "BRONX"},
@@ -61,10 +61,11 @@ def test_list_filters_by_borough(client: TestClient, auth_headers: dict) -> None
         headers=auth_headers,
     )
 
-    response = client.get("/v1/housing-units?borough=BRONX")
-    assert response.status_code == 200
-    items = response.json()["items"]
-    assert all(item["borough"] == "BRONX" for item in items)
+    for query_value in ("BRONX", "bronx", "Bronx"):
+        response = client.get(f"/v1/housing-units?borough={query_value}")
+        assert response.status_code == 200
+        items = response.json()["items"]
+        assert all(item["borough"] == "BRONX" for item in items)
 
 
 @pytest.mark.e2e

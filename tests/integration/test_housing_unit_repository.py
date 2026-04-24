@@ -63,11 +63,13 @@ def test_list_with_filters_by_borough(db_session: Session) -> None:
 
 
 @pytest.mark.integration
-def test_list_with_filters_borough_is_uppercased(db_session: Session) -> None:
-    """list_with_filters uppercases the borough value before filtering."""
+def test_list_with_filters_borough_case_insensitive(db_session: Session) -> None:
+    """borough filter is case-insensitive — any casing matches the stored value."""
     _make_unit(db_session, borough="BRONX")
-    results = repo.list_with_filters(db_session, HousingUnitFilters(borough="bronx"))
-    assert any(r.borough == "BRONX" for r in results)
+    results_lower = repo.list_with_filters(db_session, HousingUnitFilters(borough="bronx"))
+    results_mixed = repo.list_with_filters(db_session, HousingUnitFilters(borough="Bronx"))
+    assert any(r.borough == "BRONX" for r in results_lower)
+    assert any(r.borough == "BRONX" for r in results_mixed)
 
 
 @pytest.mark.integration

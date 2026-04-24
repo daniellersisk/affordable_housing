@@ -42,9 +42,10 @@ def list_with_filters(session: Session, filters: HousingUnitFilters) -> list[Hou
     if filters.street_name:
         stmt = stmt.where(HousingUnit.street_name.ilike(f"%{filters.street_name}%"))
     if filters.borough:
-        stmt = stmt.where(HousingUnit.borough == filters.borough.upper())
+        # exact case-insensitive match — ilike without wildcards
+        stmt = stmt.where(HousingUnit.borough.ilike(filters.borough))
     if filters.postcode:
-        stmt = stmt.where(HousingUnit.postcode == filters.postcode)
+        stmt = stmt.where(HousingUnit.postcode.ilike(filters.postcode))
     if filters.construction_type:
         stmt = stmt.where(HousingUnit.construction_type.ilike(f"%{filters.construction_type}%"))
     if filters.num_units_min is not None:
