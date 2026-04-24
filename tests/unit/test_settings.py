@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.settings import _get_bool, _get_int, load_settings
+from app.settings import Settings, _get_bool, _get_int, load_settings
 
 
 def test_get_bool_uses_default_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -92,3 +92,16 @@ def test_load_settings_reads_environment_at_call_time(
     monkeypatch.setenv("APP_ENV", "test")
     second = load_settings()
     assert second.app_env == "test"
+
+
+def test_settings_post_init_allows_blank_key_when_auth_disabled() -> None:
+    Settings(api_auth_enabled=False, write_api_key="")
+
+
+def test_settings_post_init_allows_key_when_auth_enabled() -> None:
+    Settings(api_auth_enabled=True, write_api_key="some-key")
+
+
+def test_settings_post_init_raises_when_auth_enabled_and_key_blank() -> None:
+    with pytest.raises(ValueError, match="WRITE_API_KEY must be set"):
+        Settings(api_auth_enabled=True, write_api_key="   ")
