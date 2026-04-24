@@ -302,3 +302,43 @@ def test_upsert_from_source_allows_missing_building_id_when_socrata_id_present(
     unit = db_session.execute(stmt).scalar_one_or_none()
     assert unit is not None
     assert unit.project_id == "P40"
+
+
+@pytest.mark.integration
+def test_upsert_from_source_prefers_socrata_id_to_avoid_unique_conflict(
+    db_session: Session,
+) -> None:
+    """If socrata_row_id already exists, we upsert on Socrata constraint (":id").
+
+    This avoids an IntegrityError where the composite upsert path would attempt an INSERT
+    that violates the unique socrata_row_id constraint.
+    """
+    existing = _make_unit(
+        db_session,
+        project_id="P0",
+        building_id="B0",
+        socrata_row_id="SAME",
+        num_units=10,
+    )
+
+    count = repo.upsert_from_source(
+        db_session,
+        [
+            {
+                ":id": "SAME",
+                "project_id": "P1",
+                "building_id": "B1",
+                "total_units": "55",
+            }
+        ],
+    )
+    assert count == 1
+    db_session.expire_all()
+
+    # still only one row for this Socrata id; it gets updated
+    stmt = select(HousingUnit).where(HousingUnit.socrata_row_id == "SAME")
+    unit = db_session.execute(stmt).scalar_one()
+    assert unit.id == existing.id
+    assert unit.project_id == "P1"
+    assert unit.building_id == "B1"
+    assert unit.num_units == 55

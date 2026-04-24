@@ -154,9 +154,60 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
     # - If a record has (project_id, building_id), upsert on that composite identity.
     #   This ensures refresh updates the existing row even if socrata_row_id was not yet stored.
     # - Otherwise, upsert on Socrata system row id (":id").
+    #
+    # Note: socrata_row_id is globally unique. If a record has a composite identity but its
+    # socrata_row_id already exists on a *different* composite identity, we route that record
+    # to the Socrata upsert path to avoid an IntegrityError on uq_housing_units_socrata_row_id.
     by_source_identity = [r for r in records if _has_complete_source_identity(r)]
     remainder = [r for r in records if not _has_complete_source_identity(r)]
     by_socrata_id = [r for r in remainder if _has_socrata_row_id(r)]
+
+    # Detect socrata_row_id conflicts inside the composite upsert batch.
+    composite_with_socrata = [r for r in by_source_identity if _has_socrata_row_id(r)]
+    if composite_with_socrata:
+        socrata_ids = [
+            str(r.get(":id")).strip()
+            for r in composite_with_socrata
+            if r.get(":id") is not None
+        ]
+        stmt = select(
+            HousingUnit.socrata_row_id,
+            HousingUnit.project_id,
+            HousingUnit.building_id,
+        ).where(HousingUnit.socrata_row_id.in_(socrata_ids))
+        existing = session.execute(stmt).all()
+        existing_by_socrata: dict[str, tuple[str | None, str | None]] = {
+            row[0]: (row[1], row[2]) for row in existing if row[0] is not None
+        }
+
+        conflicts: list[dict[str, Any]] = []
+        safe: list[dict[str, Any]] = []
+        for r in by_source_identity:
+            if not _has_socrata_row_id(r):
+                safe.append(r)
+                continue
+            rid = str(r.get(":id")).strip()
+            existing_ids = existing_by_socrata.get(rid)
+            if existing_ids is None:
+                safe.append(r)
+                continue
+            if existing_ids != (
+                str(r.get("project_id")).strip(),
+                str(r.get("building_id")).strip(),
+            ):
+                conflicts.append(r)
+            else:
+                safe.append(r)
+
+        if conflicts:
+            logger.warning(
+                "routing composite-identified records to socrata-id upsert due to "
+                "socrata_row_id conflicts",
+                extra={"conflicts": len(conflicts)},
+            )
+            by_source_identity = safe
+            by_socrata_id.extend(conflicts)
+
     skipped = len(records) - len(by_source_identity) - len(by_socrata_id)
     if skipped:
         logger.warning(

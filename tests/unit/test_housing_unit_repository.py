@@ -4,6 +4,8 @@ import math
 
 from app.repositories.housing_unit_repository import (
     _METERS_PER_DEGREE_LAT,
+    _has_complete_source_identity,
+    _has_socrata_row_id,
     _normalize_source_record,
     upsert_from_source,
 )
@@ -104,6 +106,32 @@ def test_circle_bounding_box_lon_delta_varies_with_latitude() -> None:
     assert lon_delta_nyc > lon_delta_equator
 
 
+def test_has_socrata_row_id_false_for_none_or_blank() -> None:
+    assert _has_socrata_row_id({":id": None}) is False
+    assert _has_socrata_row_id({":id": ""}) is False
+    assert _has_socrata_row_id({":id": "   "}) is False
+
+
+def test_has_socrata_row_id_true_for_non_blank() -> None:
+    assert _has_socrata_row_id({":id": "1"}) is True
+    assert _has_socrata_row_id({":id": 123}) is True
+    assert _has_socrata_row_id({":id": "  123  "}) is True
+
+
+def test_has_complete_source_identity_false_for_missing_or_blank() -> None:
+    assert _has_complete_source_identity({"project_id": None, "building_id": "B"}) is False
+    assert _has_complete_source_identity({"project_id": "P", "building_id": None}) is False
+    assert _has_complete_source_identity({"project_id": "", "building_id": "B"}) is False
+    assert _has_complete_source_identity({"project_id": "   ", "building_id": "B"}) is False
+    assert _has_complete_source_identity({"project_id": "P", "building_id": ""}) is False
+    assert _has_complete_source_identity({"project_id": "P", "building_id": "   "}) is False
+
+
+def test_has_complete_source_identity_true_for_non_blank() -> None:
+    assert _has_complete_source_identity({"project_id": "P1", "building_id": "B1"}) is True
+    assert _has_complete_source_identity({"project_id": 1, "building_id": 2}) is True
+
+
 class _ExplodeOnEq:
     def __eq__(self, other: object) -> bool:  # noqa: ANN001
         raise AssertionError("dict equality should not be used for partitioning")
@@ -113,8 +141,13 @@ class _FakeSession:
     def __init__(self) -> None:
         self.executed: int = 0
 
-    def execute(self, stmt: object) -> None:  # noqa: ANN401
+    class _Result:
+        def all(self) -> list[object]:
+            return []
+
+    def execute(self, stmt: object) -> _Result:  # noqa: ANN401
         self.executed += 1
+        return self._Result()
 
     def flush(self) -> None:
         return None
@@ -145,4 +178,5 @@ def test_upsert_from_source_partitions_without_dict_equality() -> None:
     session = _FakeSession()
     attempted = upsert_from_source(session, records)  # type: ignore[arg-type]
     assert attempted == 2
-    assert session.executed == 2
+    # 1 read for socrata conflict detection + up to 2 upsert statements
+    assert session.executed >= 2
