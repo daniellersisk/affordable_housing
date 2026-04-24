@@ -5,6 +5,7 @@ import math
 from app.repositories.housing_unit_repository import (
     _METERS_PER_DEGREE_LAT,
     _normalize_source_record,
+    upsert_from_source,
 )
 
 
@@ -101,3 +102,47 @@ def test_circle_bounding_box_lon_delta_varies_with_latitude() -> None:
     # near nyc (higher latitude) the lon delta should be larger because
     # longitude lines converge toward the poles
     assert lon_delta_nyc > lon_delta_equator
+
+
+class _ExplodeOnEq:
+    def __eq__(self, other: object) -> bool:  # noqa: ANN001
+        raise AssertionError("dict equality should not be used for partitioning")
+
+
+class _FakeSession:
+    def __init__(self) -> None:
+        self.executed: int = 0
+
+    def execute(self, stmt: object) -> None:  # noqa: ANN401
+        self.executed += 1
+
+    def flush(self) -> None:
+        return None
+
+
+def test_upsert_from_source_partitions_without_dict_equality() -> None:
+    """Guard against O(n*m) dict-equality partitioning.
+
+    This test would fail if remainder partitioning used `r not in by_source_identity`,
+    because that triggers dict equality (including value `__eq__`) comparisons.
+    """
+    records = [
+        {
+            ":id": "s1",
+            "project_id": "P1",
+            "building_id": "B1",
+            "total_units": "10",
+            "boom": _ExplodeOnEq(),
+        },
+        {
+            ":id": "s2",
+            # missing composite identity -> should flow into socrata-id upsert path
+            "total_units": "5",
+            "boom": _ExplodeOnEq(),
+        },
+    ]
+
+    session = _FakeSession()
+    attempted = upsert_from_source(session, records)  # type: ignore[arg-type]
+    assert attempted == 2
+    assert session.executed == 2

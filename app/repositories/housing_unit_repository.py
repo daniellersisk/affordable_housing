@@ -155,7 +155,7 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
     #   This ensures refresh updates the existing row even if socrata_row_id was not yet stored.
     # - Otherwise, upsert on Socrata system row id (":id").
     by_source_identity = [r for r in records if _has_complete_source_identity(r)]
-    remainder = [r for r in records if r not in by_source_identity]
+    remainder = [r for r in records if not _has_complete_source_identity(r)]
     by_socrata_id = [r for r in remainder if _has_socrata_row_id(r)]
     skipped = len(records) - len(by_source_identity) - len(by_socrata_id)
     if skipped:
