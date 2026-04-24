@@ -9,14 +9,14 @@ from fastapi.testclient import TestClient
 def test_delete_housing_unit_success_contract(client: TestClient, auth_headers: dict) -> None:
     """204 with empty body on successful delete."""
     created = client.post(
-        "/housing-units",
+        "/v1/housing-units",
         json={"num_units": 5, "street_name": "Delete Me St"},
         headers=auth_headers,
     )
     assert created.status_code == 201
     unit_id = created.json()["id"]
 
-    response = client.delete(f"/housing-units/{unit_id}", headers=auth_headers)
+    response = client.delete(f"/v1/housing-units/{unit_id}", headers=auth_headers)
     assert response.status_code == 204
     assert response.content == b""
 
@@ -24,7 +24,7 @@ def test_delete_housing_unit_success_contract(client: TestClient, auth_headers: 
 @pytest.mark.contract
 def test_delete_housing_unit_auth_error_contract(client: TestClient) -> None:
     """401 with structured error when no auth header provided."""
-    response = client.delete("/housing-units/1")
+    response = client.delete("/v1/housing-units/1")
     assert response.status_code == 401
     detail = response.json()["detail"]
     assert detail["code"] == "UNAUTHORIZED"
@@ -35,7 +35,7 @@ def test_delete_housing_unit_auth_error_contract(client: TestClient) -> None:
 @pytest.mark.contract
 def test_delete_housing_unit_not_found_contract(client: TestClient, auth_headers: dict) -> None:
     """404 with structured error for missing id."""
-    response = client.delete("/housing-units/999999999", headers=auth_headers)
+    response = client.delete("/v1/housing-units/999999999", headers=auth_headers)
     assert response.status_code == 404
     detail = response.json()["detail"]
     assert detail["code"] == "NOT_FOUND"

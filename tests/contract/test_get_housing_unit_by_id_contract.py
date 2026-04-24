@@ -9,14 +9,14 @@ from fastapi.testclient import TestClient
 def test_get_housing_unit_by_id_success_contract(client: TestClient, auth_headers: dict) -> None:
     """200 with correct single unit schema after creating one."""
     created = client.post(
-        "/housing-units",
+        "/v1/housing-units",
         json={"num_units": 10, "street_name": "Contract St"},
         headers=auth_headers,
     )
     assert created.status_code == 201
     unit_id = created.json()["id"]
 
-    response = client.get(f"/housing-units/{unit_id}")
+    response = client.get(f"/v1/housing-units/{unit_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == unit_id
@@ -29,7 +29,7 @@ def test_get_housing_unit_by_id_success_contract(client: TestClient, auth_header
 @pytest.mark.contract
 def test_get_housing_unit_by_id_not_found_contract(client: TestClient) -> None:
     """404 with structured error schema for missing id."""
-    response = client.get("/housing-units/999999999")
+    response = client.get("/v1/housing-units/999999999")
     assert response.status_code == 404
     detail = response.json()["detail"]
     assert detail["code"] == "NOT_FOUND"

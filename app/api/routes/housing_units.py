@@ -20,7 +20,17 @@ from app.services import housing_unit_service as service
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/housing-units", tags=["housing-units"])
+# public endpoints — no auth required, read-only
+public_router = APIRouter(
+    prefix="/v1/housing-units",
+    tags=["housing-units — public"],
+)
+
+# private endpoints — X-API-Key required, write operations
+private_router = APIRouter(
+    prefix="/v1/housing-units",
+    tags=["housing-units — private"],
+)
 
 
 def _not_found(unit_id: int) -> HTTPException:
@@ -45,18 +55,12 @@ def _conflict(message: str) -> HTTPException:
     )
 
 
-def _invalid_geo(message: str) -> HTTPException:
-    return HTTPException(
-        status_code=422,
-        detail={
-            "code": ErrorCode.INVALID_GEO_FILTER,
-            "message": message,
-            "details": [],
-        },
-    )
+# ---------------------------------------------------------------------------
+# public routes
+# ---------------------------------------------------------------------------
 
 
-@router.get("", response_model=HousingUnitListResponse)
+@public_router.get("", response_model=HousingUnitListResponse)
 def list_housing_units(
     street_name: str | None = Query(default=None),
     borough: str | None = Query(default=None),
@@ -77,7 +81,7 @@ def list_housing_units(
     session: Session = Depends(get_db),
 ) -> HousingUnitListResponse:
     """List housing units with optional filters and pagination."""
-    logger.info("GET /housing-units")
+    logger.info("GET /v1/housing-units")
     try:
         filters = HousingUnitFilters(
             street_name=street_name,
@@ -117,13 +121,13 @@ def list_housing_units(
     )
 
 
-@router.get("/{unit_id}", response_model=HousingUnitResponse)
+@public_router.get("/{unit_id}", response_model=HousingUnitResponse)
 def get_housing_unit(
     unit_id: int,
     session: Session = Depends(get_db),
 ) -> HousingUnitResponse:
     """Fetch a single housing unit by id."""
-    logger.info("GET /housing-units/%s", unit_id)
+    logger.info("GET /v1/housing-units/%s", unit_id)
     try:
         unit = service.get_housing_unit(session, unit_id)
     except NotFoundError:
@@ -131,14 +135,19 @@ def get_housing_unit(
     return HousingUnitResponse.model_validate(unit)
 
 
-@router.post("", response_model=HousingUnitResponse, status_code=status.HTTP_201_CREATED)
+# ---------------------------------------------------------------------------
+# private routes
+# ---------------------------------------------------------------------------
+
+
+@private_router.post("", response_model=HousingUnitResponse, status_code=status.HTTP_201_CREATED)
 def create_housing_unit(
     body: HousingUnitCreate,
     session: Session = Depends(get_db),
     _auth: None = Depends(require_write_auth),
 ) -> HousingUnitResponse:
     """Create a new housing unit."""
-    logger.info("POST /housing-units")
+    logger.info("POST /v1/housing-units")
     try:
         unit = service.create_housing_unit(session, body.model_dump(exclude_none=False))
         session.commit()
@@ -147,7 +156,7 @@ def create_housing_unit(
     return HousingUnitResponse.model_validate(unit)
 
 
-@router.put("/{unit_id}", response_model=HousingUnitResponse)
+@private_router.put("/{unit_id}", response_model=HousingUnitResponse)
 def update_housing_unit(
     unit_id: int,
     body: HousingUnitUpdate,
@@ -155,7 +164,7 @@ def update_housing_unit(
     _auth: None = Depends(require_write_auth),
 ) -> HousingUnitResponse:
     """Update a housing unit by id."""
-    logger.info("PUT /housing-units/%s", unit_id)
+    logger.info("PUT /v1/housing-units/%s", unit_id)
     try:
         unit = service.update_housing_unit(
             session, unit_id, body.model_dump(exclude_unset=True)
@@ -168,14 +177,14 @@ def update_housing_unit(
     return HousingUnitResponse.model_validate(unit)
 
 
-@router.delete("/{unit_id}", status_code=status.HTTP_204_NO_CONTENT)
+@private_router.delete("/{unit_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_housing_unit(
     unit_id: int,
     session: Session = Depends(get_db),
     _auth: None = Depends(require_write_auth),
 ) -> None:
     """Delete a housing unit by id."""
-    logger.info("DELETE /housing-units/%s", unit_id)
+    logger.info("DELETE /v1/housing-units/%s", unit_id)
     try:
         service.delete_housing_unit(session, unit_id)
         session.commit()
@@ -183,13 +192,13 @@ def delete_housing_unit(
         raise _not_found(unit_id)
 
 
-@router.post("/{unit_id}/refresh", status_code=status.HTTP_501_NOT_IMPLEMENTED)
+@private_router.post("/{unit_id}/refresh", status_code=status.HTTP_501_NOT_IMPLEMENTED)
 def refresh_housing_unit(
     unit_id: int,
     _auth: None = Depends(require_write_auth),
 ) -> ErrorResponse:
-    """Re-sync one record from Socrata. Implemented in Phase 4."""
-    logger.info("POST /housing-units/%s/refresh (not yet implemented)", unit_id)
+    """Re-sync one record from Socrata by its source identity. Implemented in Phase 4."""
+    logger.info("POST /v1/housing-units/%s/refresh (not yet implemented)", unit_id)
     return ErrorResponse(
         code="NOT_IMPLEMENTED",
         message="refresh endpoint will be available once the Socrata client is implemented",
@@ -197,12 +206,12 @@ def refresh_housing_unit(
     )
 
 
-@router.post("/sync", status_code=status.HTTP_501_NOT_IMPLEMENTED)
+@private_router.post("/sync", status_code=status.HTTP_501_NOT_IMPLEMENTED)
 def sync_housing_unit(
     _auth: None = Depends(require_write_auth),
 ) -> ErrorResponse:
-    """Sync a record from Socrata by source identity. Implemented in Phase 4."""
-    logger.info("POST /housing-units/sync (not yet implemented)")
+    """Sync a specific Socrata record into the DB by source identity. Implemented in Phase 4."""
+    logger.info("POST /v1/housing-units/sync (not yet implemented)")
     return ErrorResponse(
         code="NOT_IMPLEMENTED",
         message="sync endpoint will be available once the Socrata client is implemented",

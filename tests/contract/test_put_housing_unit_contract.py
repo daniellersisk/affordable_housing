@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 def test_put_housing_unit_success_contract(client: TestClient, auth_headers: dict) -> None:
     """200 with updated response schema."""
     created = client.post(
-        "/housing-units",
+        "/v1/housing-units",
         json={"num_units": 10, "street_name": "Old St"},
         headers=auth_headers,
     )
@@ -17,7 +17,7 @@ def test_put_housing_unit_success_contract(client: TestClient, auth_headers: dic
     unit_id = created.json()["id"]
 
     response = client.put(
-        f"/housing-units/{unit_id}",
+        f"/v1/housing-units/{unit_id}",
         json={"street_name": "New St"},
         headers=auth_headers,
     )
@@ -32,7 +32,7 @@ def test_put_housing_unit_success_contract(client: TestClient, auth_headers: dic
 @pytest.mark.contract
 def test_put_housing_unit_auth_error_contract(client: TestClient) -> None:
     """401 with structured error when no auth header provided."""
-    response = client.put("/housing-units/1", json={"street_name": "X"})
+    response = client.put("/v1/housing-units/1", json={"street_name": "X"})
     assert response.status_code == 401
     detail = response.json()["detail"]
     assert detail["code"] == "UNAUTHORIZED"
@@ -44,7 +44,7 @@ def test_put_housing_unit_auth_error_contract(client: TestClient) -> None:
 def test_put_housing_unit_not_found_contract(client: TestClient, auth_headers: dict) -> None:
     """404 with structured error for missing id."""
     response = client.put(
-        "/housing-units/999999999",
+        "/v1/housing-units/999999999",
         json={"street_name": "Ghost St"},
         headers=auth_headers,
     )

@@ -138,8 +138,8 @@ This matters in the interview because it shows deliberate sequencing: infrastruc
 
 The intended contract is:
 
-- **Public:** `GET /housing-units`, `GET /housing-units/{id}`
-- **Protected:** `POST /housing-units`, `PUT /housing-units/{id}`, `DELETE /housing-units/{id}`
+- **Public:** `GET /v1/housing-units`, `GET /v1/housing-units/{id}`
+- **Protected:** `POST /v1/housing-units`, `PUT /v1/housing-units/{id}`, `DELETE /v1/housing-units/{id}`
 
 ### Role Model
 
@@ -161,26 +161,26 @@ This keeps the app simple enough for the exercise while still showing explicit p
 
 ### Required Endpoints
 
-- `GET /housing-units`
-- `GET /housing-units/{id}`
-- `POST /housing-units`
-- `PUT /housing-units/{id}`
-- `DELETE /housing-units/{id}`
-- `POST /housing-units/{id}/refresh`
-- `POST /housing-units/sync`
+- `GET /v1/housing-units`
+- `GET /v1/housing-units/{id}`
+- `POST /v1/housing-units`
+- `PUT /v1/housing-units/{id}`
+- `DELETE /v1/housing-units/{id}`
+- `POST /v1/housing-units/{id}/refresh`
+- `POST /v1/housing-units/sync`
 
 ### Refresh vs PUT — full mutation reference
 
 | Operation | Endpoint | Socrata? | Payload | Use case |
 |---|---|---|---|---|
-| user edit | `PUT /housing-units/{id}` | no | user data | update any field manually |
-| re-sync one known record | `POST /housing-units/{id}/refresh` | yes | none | refresh a record already in the DB |
-| add/sync by source identity | `POST /housing-units/sync` | yes | `{ project_id, building_id }` | sync one specific Socrata record without a full import |
+| user edit | `PUT /v1/housing-units/{id}` | no | user data | update any field manually |
+| re-sync one known record | `POST /v1/housing-units/{id}/refresh` | yes | none | refresh a record already in the DB |
+| add/sync by source identity | `POST /v1/housing-units/sync` | yes | `{ project_id, building_id }` | sync one specific Socrata record without a full import |
 | bulk re-sync | `make refresh` / `make import` | yes | none | re-import everything from Socrata |
 
 `PUT` never calls Socrata. `/refresh` and `/sync` always call Socrata and never accept a user payload. This keeps user-authored edits and source synchronization as separate, explicit operations.
 
-### `GET /housing-units` Filters
+### `GET /v1/housing-units` Filters
 
 - `street_name`
 - `borough`
@@ -211,10 +211,10 @@ Geo validation rules:
 
 ### Record Semantics
 
-- `GET /housing-units/{id}` returns one record or `404`
-- `POST /housing-units` validates the body and returns `201`
-- `PUT /housing-units/{id}` uses full-update semantics
-- `DELETE /housing-units/{id}` returns `204`
+- `GET /v1/housing-units/{id}` returns one record or `404`
+- `POST /v1/housing-units` validates the body and returns `201`
+- `PUT /v1/housing-units/{id}` uses full-update semantics
+- `DELETE /v1/housing-units/{id}` returns `204`
 
 ### Source-Managed Record Rule
 
@@ -597,7 +597,7 @@ Out of scope:
 
 #### API Impacts
 
-- all required `/housing-units` routes become available
+- all required `/v1/housing-units` routes become available
 - filter behavior and error mapping become visible through Swagger UI
 
 #### Security Considerations

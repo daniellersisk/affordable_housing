@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 @pytest.mark.contract
 def test_get_housing_units_success_contract(client: TestClient) -> None:
     """200 with correct list response schema."""
-    response = client.get("/housing-units")
+    response = client.get("/v1/housing-units")
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -21,7 +21,7 @@ def test_get_housing_units_success_contract(client: TestClient) -> None:
 @pytest.mark.contract
 def test_get_housing_units_pagination_contract(client: TestClient) -> None:
     """limit and offset query params are reflected in response."""
-    response = client.get("/housing-units?limit=5&offset=0")
+    response = client.get("/v1/housing-units?limit=5&offset=0")
     assert response.status_code == 200
     data = response.json()
     assert data["limit"] == 5
@@ -31,7 +31,7 @@ def test_get_housing_units_pagination_contract(client: TestClient) -> None:
 @pytest.mark.contract
 def test_get_housing_units_geo_params_without_shape_returns_422(client: TestClient) -> None:
     """geo params without geo_shape return 422 with INVALID_GEO_FILTER code."""
-    response = client.get("/housing-units?min_lat=40.6")
+    response = client.get("/v1/housing-units?min_lat=40.6")
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert detail["code"] == "INVALID_GEO_FILTER"
@@ -41,7 +41,7 @@ def test_get_housing_units_geo_params_without_shape_returns_422(client: TestClie
 @pytest.mark.contract
 def test_get_housing_units_rectangle_missing_params_returns_422(client: TestClient) -> None:
     """rectangle shape with missing params returns 422."""
-    response = client.get("/housing-units?geo_shape=rectangle&min_lat=40.6")
+    response = client.get("/v1/housing-units?geo_shape=rectangle&min_lat=40.6")
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert detail["code"] == "INVALID_GEO_FILTER"
@@ -50,7 +50,7 @@ def test_get_housing_units_rectangle_missing_params_returns_422(client: TestClie
 @pytest.mark.contract
 def test_get_housing_units_item_schema_contract(client: TestClient) -> None:
     """each item in the list has the required response fields."""
-    response = client.get("/housing-units")
+    response = client.get("/v1/housing-units")
     assert response.status_code == 200
     items = response.json()["items"]
     if items:

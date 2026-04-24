@@ -105,7 +105,7 @@ HTTP request
 
 Even if read endpoints are public, roles and security are still required:
 
-- Public: `GET /housing-units`, `GET /housing-units/{id}`
+- Public: `GET /v1/housing-units`, `GET /v1/housing-units/{id}`
 - Protected: `POST`, `PUT`, `DELETE`
 - Write-route auth contract:
   - header: `X-API-Key`
@@ -167,25 +167,25 @@ When QA review is requested, use `agents/qa.mdc` and validate:
 
 ## Required API Endpoints
 
-- `GET /housing-units` with filters:
+- `GET /v1/housing-units` with filters:
   - `street_name`, `borough`, `postcode`, `construction_type`, `num_units_min`, `num_units_max`
   - geo discriminator `geo_shape`:
     - `rectangle` -> `min_lat`, `max_lat`, `min_lon`, `max_lon`
     - `circle` -> `center_lat`, `center_lon`, `radius_m`
-- `GET /housing-units/{id}`
-- `POST /housing-units`
-- `PUT /housing-units/{id}`
-- `DELETE /housing-units/{id}`
-- `POST /housing-units/{id}/refresh` — re-sync one existing record from Socrata using its `project_id` + `building_id`. No request body. Returns `404` if the unit does not exist, `422` if the unit has no source identity.
-- `POST /housing-units/sync` — fetch and upsert a specific Socrata record by source identity. Body: `{ project_id, building_id }`. Inserts if not yet in DB, updates if already present. Use this to add or re-sync a single record without running a full import.
+- `GET /v1/housing-units/{id}`
+- `POST /v1/housing-units`
+- `PUT /v1/housing-units/{id}`
+- `DELETE /v1/housing-units/{id}`
+- `POST /v1/housing-units/{id}/refresh` — re-sync one existing record from Socrata using its `project_id` + `building_id`. No request body. Returns `404` if the unit does not exist, `422` if the unit has no source identity.
+- `POST /v1/housing-units/sync` — fetch and upsert a specific Socrata record by source identity. Body: `{ project_id, building_id }`. Inserts if not yet in DB, updates if already present. Use this to add or re-sync a single record without running a full import.
 
 ### Mutation operations — full reference
 
 | Operation | Endpoint | Socrata? | Payload | Use case |
 |---|---|---|---|---|
-| user edit | `PUT /housing-units/{id}` | no | user data | update any field manually |
-| re-sync one known record | `POST /housing-units/{id}/refresh` | yes | none | refresh a record already in the DB |
-| add/sync by source identity | `POST /housing-units/sync` | yes | `{ project_id, building_id }` | sync one specific Socrata record without a full import |
+| user edit | `PUT /v1/housing-units/{id}` | no | user data | update any field manually |
+| re-sync one known record | `POST /v1/housing-units/{id}/refresh` | yes | none | refresh a record already in the DB |
+| add/sync by source identity | `POST /v1/housing-units/sync` | yes | `{ project_id, building_id }` | sync one specific Socrata record without a full import |
 | bulk re-sync | `make refresh` / `make import` | yes | none | re-import everything from Socrata |
 
 Both `/refresh` and `/sync` depend on the Socrata client (Phase 4) and land in the same change set.
