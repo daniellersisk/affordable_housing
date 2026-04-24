@@ -92,6 +92,13 @@ class Settings:
         )
     )
 
+    def __post_init__(self) -> None:
+        if self.api_auth_enabled and self.write_api_key.strip() == "":
+            raise ValueError(
+                "WRITE_API_KEY must be set when API_AUTH_ENABLED=true "
+                "(write routes require X-API-Key authentication)."
+            )
+
     @property
     def resolved_open_data_url(self) -> str:
         if self.nyc_open_data_url:
