@@ -55,8 +55,8 @@ jobs:
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
         run: |
-          PROMPT="$(cat <<'EOF'
-You are running a scheduled repo-wide maintenance review for the `affordable_housing` repository.
+          PROMPT="$(python - <<'PY'
+print("""You are running a scheduled repo-wide maintenance review for the `affordable_housing` repository.
 
 Non-negotiables:
 - REPORT-ONLY. Do NOT change any code, tests, configs, or docs besides creating/updating ONLY `docs/repo-health-report.md`.
@@ -108,8 +108,8 @@ Date: <today>
 ## Suggested next actions
 - <concrete next steps>
 
-Remember: only modify `docs/repo-health-report.md`.
-EOF
+Remember: only modify `docs/repo-health-report.md`.""")
+PY
 )"
 
           PROMPT="${PROMPT/__LINT_EXIT__/$(cat /tmp/lint.exit)}"
