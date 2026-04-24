@@ -146,14 +146,23 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
 
 
 def _normalize_source_record(record: dict[str, Any]) -> dict[str, Any]:
-    """Map source field names to internal field names.
+    """Map source field names to internal field names at write time.
 
-    total_units -> num_units is the only normalization needed today.
-    All other source fields share names with the internal schema.
+    Socrata field → internal field:
+      total_units              → num_units (int cast required — source sends strings)
+      reporting_construction_type → construction_type
+      borough                  → borough (normalize to uppercase for Borough enum)
+
+    All other used fields (project_id, building_id, street_name, postcode,
+    latitude, longitude) share names with the internal schema.
     """
     normalized = dict(record)
     if "total_units" in normalized:
-        normalized["num_units"] = normalized.pop("total_units")
+        normalized["num_units"] = int(normalized.pop("total_units"))
+    if "reporting_construction_type" in normalized:
+        normalized["construction_type"] = normalized.pop("reporting_construction_type")
+    if "borough" in normalized and normalized["borough"]:
+        normalized["borough"] = normalized["borough"].upper()
     return normalized
 
 

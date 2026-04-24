@@ -51,8 +51,12 @@ class HousingUnitFilters(BaseModel):
     @field_validator("postcode")
     @classmethod
     def postcode_digits_only(cls, v: str | None) -> str | None:
-        if v is not None and not v.isdigit():
+        if v is None:
+            return v
+        if not v.isdigit():
             raise ValueError("postcode must contain digits only")
+        if len(v) != 5:
+            raise ValueError("postcode must be exactly 5 digits")
         return v
 
     @model_validator(mode="after")

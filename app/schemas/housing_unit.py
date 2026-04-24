@@ -23,8 +23,12 @@ Longitude = Annotated[Decimal, Field(ge=Decimal("-180.000000"), le=Decimal("180.
 
 
 def _validate_postcode(value: str | None) -> str | None:
-    if value is not None and not value.isdigit():
+    if value is None:
+        return value
+    if not value.isdigit():
         raise ValueError("postcode must contain digits only")
+    if len(value) != 5:
+        raise ValueError("postcode must be exactly 5 digits")
     return value
 
 

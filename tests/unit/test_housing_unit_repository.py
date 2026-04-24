@@ -9,26 +9,43 @@ from app.repositories.housing_unit_repository import (
 
 
 def test_normalize_source_record_maps_total_units() -> None:
-    """total_units is mapped to num_units at write time."""
-    record = {"project_id": "P1", "building_id": "B1", "total_units": 42}
+    """total_units is cast to int and mapped to num_units at write time."""
+    record = {"project_id": "P1", "building_id": "B1", "total_units": "42"}
     result = _normalize_source_record(record)
     assert "num_units" in result
     assert result["num_units"] == 42
+    assert isinstance(result["num_units"], int)
     assert "total_units" not in result
 
 
+def test_normalize_source_record_maps_reporting_construction_type() -> None:
+    """reporting_construction_type is mapped to construction_type."""
+    record = {"project_id": "P1", "building_id": "B1", "total_units": "10",
+              "reporting_construction_type": "New Construction"}
+    result = _normalize_source_record(record)
+    assert result["construction_type"] == "New Construction"
+    assert "reporting_construction_type" not in result
+
+
+def test_normalize_source_record_uppercases_borough() -> None:
+    """borough from source ('Queens') is normalized to uppercase ('QUEENS')."""
+    record = {"project_id": "P1", "building_id": "B1", "total_units": "10",
+              "borough": "Queens"}
+    result = _normalize_source_record(record)
+    assert result["borough"] == "QUEENS"
+
+
 def test_normalize_source_record_preserves_other_fields() -> None:
-    """Fields other than total_units are passed through unchanged."""
+    """Fields not requiring mapping are passed through unchanged."""
     record = {
         "project_id": "P1",
         "building_id": "B1",
-        "total_units": 10,
+        "total_units": "10",
         "street_name": "Broadway",
         "borough": "MANHATTAN",
     }
     result = _normalize_source_record(record)
     assert result["street_name"] == "Broadway"
-    assert result["borough"] == "MANHATTAN"
     assert result["project_id"] == "P1"
 
 
