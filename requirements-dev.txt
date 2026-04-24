@@ -2,8 +2,7 @@
 # the dockerfile uses this file so the single image supports both running and testing.
 # a future multi-stage build would use only requirements.txt for the runtime stage.
 -r requirements.txt
-pytest
-pytest-asyncio
-pytest-cov
-ruff
-httpx
+pytest==9.0.3
+pytest-asyncio==1.3.0
+pytest-cov==7.1.0
+ruff==0.15.11

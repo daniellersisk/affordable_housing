@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
@@ -144,9 +144,16 @@ def get_nearby_housing_units(
     unit_id: int,
     radius_m: float = Query(..., gt=0, description="search radius in metres"),
     limit: int = Query(default=10, ge=1, le=100),
+    response: Response = None,  # type: ignore[assignment]
     session: Session = Depends(get_db),
 ) -> HousingUnitListResponse:
-    """Return housing units within radius_m metres of the given unit.
+    """Return housing units within approximately radius_m metres of the given unit.
+
+    **Geo approximation:** uses a bounding-box (rectangle) approximation for the
+    circle filter. Points in the corners of the bounding box that fall outside the
+    true radius may be included. The response carries an
+    `X-Geo-Approximation: bounding-box` header to make this explicit.
+    PostGIS `ST_DWithin` would provide exact circle results in production.
 
     Returns 404 if the unit does not exist or has no coordinates.
     The requested unit is excluded from results.
@@ -177,6 +184,9 @@ def get_nearby_housing_units(
     )
     results = service.list_housing_units(session, nearby_filters)
     nearby = [u for u in results if u.id != unit_id][:limit]
+
+    if response is not None:
+        response.headers["X-Geo-Approximation"] = "bounding-box"
 
     return HousingUnitListResponse(
         items=[HousingUnitResponse.model_validate(u) for u in nearby],

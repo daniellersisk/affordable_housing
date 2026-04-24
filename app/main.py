@@ -9,12 +9,29 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes import analytics, health, housing_units
 from app.core.constants import ErrorCode
+from app.core.logging import configure_logging, new_request_id, set_request_id
+
+configure_logging()
 
 app = FastAPI(
     title="Housing Units API",
     description="nyc affordable housing units — queryable by borough, geo, and unit count.",
     version="0.1.0",
 )
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next: object) -> object:
+    """Generate a request ID for every request and propagate it through logs and response.
+
+    Honours an incoming X-Request-ID header so callers can inject their own correlation ID
+    (useful when this API sits behind a gateway that already assigns trace IDs).
+    """
+    request_id = request.headers.get("X-Request-ID") or new_request_id()
+    set_request_id(request_id)
+    response = await call_next(request)  # type: ignore[operator]
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.exception_handler(RequestValidationError)

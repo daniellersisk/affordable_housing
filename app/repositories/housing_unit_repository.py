@@ -4,7 +4,7 @@ import math
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import asc, desc, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -160,6 +160,9 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
             "latitude": stmt.excluded.latitude,
             "longitude": stmt.excluded.longitude,
             "last_synced_from_socrata": stmt.excluded.last_synced_from_socrata,
+            # updated_at is not set by the ORM's onupdate for raw SQL upserts —
+            # set it explicitly so every import run stamps the row's modification time.
+            "updated_at": func.now(),
         },
     )
 

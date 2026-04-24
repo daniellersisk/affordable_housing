@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -32,10 +32,24 @@ class AnalyticsSummaryResponse(BaseModel):
 
 
 @router.get("/summary", response_model=AnalyticsSummaryResponse)
-def get_summary(session: Session = Depends(get_db)) -> AnalyticsSummaryResponse:
-    """Dashboard summary: total units, total records, units by borough, top construction types."""
-    logger.info("GET /v1/analytics/summary")
-    summary = repo.get_summary(session)
+def get_summary(
+    top_n: int = Query(
+        default=3,
+        ge=1,
+        le=20,
+        description="number of top construction types to include",
+    ),
+    session: Session = Depends(get_db),
+) -> AnalyticsSummaryResponse:
+    """Dashboard summary: total units, total records, units by borough, top construction types.
+
+    Aggregates across all records via GROUP BY — result sets are inherently small
+    (bounded by distinct borough/construction_type values, not row count).
+    At production scale with millions of rows, add a Redis cache in front of this
+    endpoint to avoid a full-table scan on every request.
+    """
+    logger.info("GET /v1/analytics/summary", extra={"top_n": top_n})
+    summary = repo.get_summary(session, top_construction_types=top_n)
     return AnalyticsSummaryResponse(
         total_units=summary.total_units,
         total_records=summary.total_records,
