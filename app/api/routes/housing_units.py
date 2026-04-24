@@ -10,7 +10,6 @@ from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.schemas.filters import HousingUnitFilters
 from app.schemas.housing_unit import (
-    ErrorResponse,
     HousingUnitCreate,
     HousingUnitListResponse,
     HousingUnitResponse,

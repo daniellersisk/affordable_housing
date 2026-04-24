@@ -49,7 +49,10 @@ class SocrataClient:
                 break
             yield page
             if len(page) < self._page_size:
-                logger.info("socrata last page reached", extra={"offset": offset, "count": len(page)})
+                logger.info(
+                    "socrata last page reached",
+                    extra={"offset": offset, "count": len(page)},
+                )
                 break
             offset += self._page_size
 

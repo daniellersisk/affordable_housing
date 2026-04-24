@@ -5,7 +5,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.clients.socrata_client import socrata_client
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import NotFoundError
 from app.core.logging import get_logger
 from app.models.housing_unit import HousingUnit
 from app.repositories import housing_unit_repository as repo
