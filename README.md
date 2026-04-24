@@ -108,6 +108,8 @@ make clean    # stop containers + delete DB volume (DESTROYS DATA)
 
 - **Changed `.env`?** Restart the API container: `docker compose restart api` (or re-run `make up`).
 - **Write endpoints returning 401?** Set `WRITE_API_KEY` in `.env` and send header `X-API-Key: <value>`.
+- **Copied `.env.example` and the app won’t start?** `.env.example` intentionally leaves `WRITE_API_KEY` blank; set it
+  (shared separately for review) or set `API_AUTH_ENABLED=false` to explore read-only endpoints without write auth.
 - **Import hitting rate limits?** Set `SODA_APP_TOKEN` in `.env` (recommended outside one-off local runs).
 
 ## Why This Stack
