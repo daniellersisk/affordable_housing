@@ -45,9 +45,14 @@ What is not implemented yet:
 
 ## Quickstart
 
+From a clean clone:
+
 ```bash
+# 1) create local env file (safe defaults for local dev)
 cp .env.example .env
-docker compose up --build
+
+# 2) start the stack (API + Postgres)
+make up
 ```
 
 Then open:
@@ -61,7 +66,7 @@ Startup sequence:
 - `db` starts first
 - Postgres becomes healthy through `pg_isready`
 - `api` starts only after Postgres is healthy
-- `entrypoint.sh` runs `alembic upgrade head` (idempotent — no-op if already at head)
+- the `migrate` service runs `alembic upgrade head` before `api` starts (idempotent — no-op if already at head)
 - FastAPI binds to `0.0.0.0` and is reachable on localhost
 
 > **The database starts empty.** `make up` does not load NYC housing data automatically.
@@ -71,7 +76,27 @@ Startup sequence:
 > make import
 > ```
 >
-> This is intentional — the import takes a few minutes and is not required for local development or running tests. Re-running `make import` is safe (idempotent upsert). To preview what would be imported without writing anything, run `make import ARGS=--dry-run`.
+> This is intentional — the import takes a few minutes and is not required for local development or running tests.
+> Re-running `make import` is safe (idempotent upsert). To preview what would be imported without writing anything:
+>
+> ```bash
+> make import ARGS=--dry-run
+> ```
+
+### Common commands
+
+```bash
+make test     # run the full test suite
+make lint     # ruff
+make down     # stop containers (keeps DB volume)
+make clean    # stop containers + delete DB volume (DESTROYS DATA)
+```
+
+### Troubleshooting
+
+- **Changed `.env`?** Restart the API container: `docker compose restart api` (or re-run `make up`).
+- **Write endpoints returning 401?** Set `WRITE_API_KEY` in `.env` and send header `X-API-Key: <value>`.
+- **Import hitting rate limits?** Set `SODA_APP_TOKEN` in `.env` (recommended outside one-off local runs).
 
 ## Why This Stack
 
