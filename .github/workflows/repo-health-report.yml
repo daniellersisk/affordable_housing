@@ -55,62 +55,7 @@ jobs:
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
         run: |
-          PROMPT="$(python - <<'PY'
-print("""You are running a scheduled repo-wide maintenance review for the `affordable_housing` repository.
-
-Non-negotiables:
-- REPORT-ONLY. Do NOT change any code, tests, configs, or docs besides creating/updating ONLY `docs/repo-health-report.md`.
-- Do NOT run any commands. Do NOT run tests. Use ONLY the provided CI outputs plus static repository inspection.
-
-Inputs from CI:
-- make lint exit code: __LINT_EXIT__
-- make test exit code: __TEST_EXIT__
-
-Lint output (first ~200 lines):
-__LINT_OUTPUT__
-
-Test output (first ~200 lines):
-__TEST_OUTPUT__
-
-Tasks:
-- Review the repository holistically on `main` (not limited to a PR diff).
-- Scan for accidentally committed secrets/credentials.
-- Validate standards:
-  - routes → services → repositories layering; repositories only touch SQLAlchemy
-  - services do not import FastAPI/HTTPException/Request; services raise typed domain errors
-  - only `app/settings.py` reads env vars; other modules import settings
-  - avoid magic strings/numbers; use constants/enums
-  - type hints on public interfaces
-- Review Alembic migrations for safety/idempotence and downgrade correctness.
-- Identify test gaps and risky patterns.
-
-Output:
-- Write/update `docs/repo-health-report.md` with:
-
-## Repo Health Report
-Date: <today>
-
-## Summary
-- <3-6 bullets>
-
-## Checks Run
-- make lint (exit=<...>)
-- make test (exit=<...>)
-
-## Findings (prioritized)
-### P0 (must fix)
-- ...
-### P1 (should fix)
-- ...
-### P2 (nice to have)
-- ...
-
-## Suggested next actions
-- <concrete next steps>
-
-Remember: only modify `docs/repo-health-report.md`.""")
-PY
-)"
+          PROMPT="$(cat .github/prompts/repo-health-prompt.txt)"
 
           PROMPT="${PROMPT/__LINT_EXIT__/$(cat /tmp/lint.exit)}"
           PROMPT="${PROMPT/__TEST_EXIT__/$(cat /tmp/test.exit)}"
