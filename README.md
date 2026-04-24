@@ -14,7 +14,7 @@ The project is intentionally being delivered in layers:
 4. build domain logic before widening the HTTP surface
 5. expose documented API contracts through FastAPI and Swagger UI
 
-That sequence keeps the challenge easy to review, easier to test, and easier to discuss in an interview. The current repo is at the end of Step 3: Docker, Postgres orchestration, health checks, centralized settings, CI, SQLAlchemy models, Alembic migrations, and a real DB session layer are all in place. The domain, service, and API layers are next.
+That sequence keeps the challenge easy to review, easier to test, and easier to discuss in an interview. The current repo has progressed through Steps 1–6: Docker + Postgres + migrations, a repository/service layer, CRUD + filtering endpoints with documented contracts, and a Socrata-backed import/refresh workflow are all in place. Remaining work is largely hardening and completeness (production-grade geo queries, expanded contract coverage, and operational polish).
 
 ## Current Baseline
 
@@ -37,11 +37,10 @@ What is implemented today:
 
 What is not implemented yet:
 
-- repository and service layer (Step 4)
-- `housing_units` CRUD endpoints and Pydantic schemas (Step 5)
-- NYC open-data import script (Step 6)
-- auth enforcement on write routes (Step 7)
-- full contract, integration, and e2e coverage (Step 8)
+- full RBAC beyond a single write key (viewer/editor/admin roles) (Step 7+)
+- production-grade geo queries (e.g. PostGIS `ST_DWithin`) to replace the current circle/bounding-box approximation
+- expanded contract + e2e coverage (including negative/auth paths for every endpoint) (Step 8)
+- production readiness hardening (rate limiting, security headers, observability/audit logging, and deployment runbooks)
 
 ## Quickstart
 
