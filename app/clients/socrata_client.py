@@ -1,6 +1,7 @@
 # HTTP client for the NYC Open Data Socrata API.
 # All ingestion requests go through this client — no other module may call Socrata directly.
-# Uses HTTP POST to query.json with SoQL; handles pagination, retries, and app-token auth.
+# Uses the SODA v2 resource endpoint (GET /resource/{id}.json) with $limit/$offset pagination,
+# $order=:id ordering, and $where filtering; handles retries and app-token auth.
 # Config values come from settings only — nothing is hardcoded here.
 from __future__ import annotations
 

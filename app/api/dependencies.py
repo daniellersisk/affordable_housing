@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Header, HTTPException
 
 from app.core.constants import ErrorCode
 from app.db.session import get_db
@@ -28,7 +28,3 @@ def require_write_auth(x_api_key: str = Header(default="")) -> None:
                 "details": [{"field": "X-API-Key", "message": "header is missing or incorrect"}],
             },
         )
-
-
-# convenience alias so routes can: from app.api.dependencies import SessionDep
-SessionDep = Depends(get_db)

@@ -105,18 +105,3 @@ class HousingUnitListResponse(BaseModel):
     total: int
     limit: int
     offset: int
-
-
-class ErrorDetail(BaseModel):
-    """A single structured error detail entry."""
-
-    field: str | None = None
-    message: str
-
-
-class ErrorResponse(BaseModel):
-    """Structured error payload returned on all 4xx/5xx responses."""
-
-    code: str
-    message: str
-    details: list[ErrorDetail] = []
