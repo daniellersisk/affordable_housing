@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.constants import GeoShape
 
@@ -19,8 +19,8 @@ class HousingUnitFilters(BaseModel):
     borough: str | None = None
     postcode: str | None = None
     construction_type: str | None = None
-    num_units_min: int | None = None
-    num_units_max: int | None = None
+    num_units_min: int | None = Field(default=None, ge=1)
+    num_units_max: int | None = Field(default=None, ge=0)
 
     geo_shape: GeoShape | None = None
 
