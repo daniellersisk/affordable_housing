@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import asc, desc, select
@@ -108,17 +109,44 @@ def delete(session: Session, unit_id: int) -> None:
     logger.info("housing unit deleted", extra={"id": unit_id})
 
 
+def get_by_source_identity(
+    session: Session, project_id: str, building_id: str
+) -> HousingUnit | None:
+    """Fetch a single housing unit by its Socrata source composite identity.
+
+    Returns None if no row with that (project_id, building_id) exists.
+    Uses a direct SELECT to bypass the session identity map after a bulk upsert.
+    """
+    try:
+        stmt = select(HousingUnit).where(
+            HousingUnit.project_id == project_id,
+            HousingUnit.building_id == building_id,
+        )
+        return session.execute(stmt).scalar_one_or_none()
+    except SQLAlchemyError as exc:
+        logger.error(
+            "get_by_source_identity failed",
+            extra={"project_id": project_id, "building_id": building_id, "error": str(exc)},
+        )
+        raise
+
+
 def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
     """Idempotent upsert for source-ingested records.
 
     Normalizes source field names at write time (total_units -> num_units).
+    Sets last_synced_from_socrata to the current UTC time on every upsert.
     Uses INSERT ... ON CONFLICT on (project_id, building_id) to update existing rows.
-    Returns the number of rows affected.
+    Returns the number of rows attempted.
     """
     if not records:
         return 0
 
-    normalized = [_normalize_source_record(r) for r in records]
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    normalized = [
+        {**_normalize_source_record(r), "last_synced_from_socrata": now}
+        for r in records
+    ]
 
     stmt = pg_insert(HousingUnit).values(normalized)
     stmt = stmt.on_conflict_do_update(
@@ -131,6 +159,7 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
             "num_units": stmt.excluded.num_units,
             "latitude": stmt.excluded.latitude,
             "longitude": stmt.excluded.longitude,
+            "last_synced_from_socrata": stmt.excluded.last_synced_from_socrata,
         },
     )
 

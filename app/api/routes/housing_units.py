@@ -243,15 +243,44 @@ def delete_housing_unit(
         raise _not_found(unit_id)
 
 
-@private_router.post("/{unit_id}/refresh", status_code=status.HTTP_501_NOT_IMPLEMENTED)
+@private_router.post("/{unit_id}/refresh", response_model=HousingUnitResponse)
 def refresh_housing_unit(
     unit_id: int,
+    session: Session = Depends(get_db),
     _auth: None = Depends(require_write_auth),
-) -> ErrorResponse:
-    """Re-sync one record from Socrata by its source identity. Implemented in Phase 4."""
-    logger.info("POST /v1/housing-units/%s/refresh (not yet implemented)", unit_id)
-    return ErrorResponse(
-        code="NOT_IMPLEMENTED",
-        message="refresh endpoint will be available once the Socrata client is implemented",
-        details=[],
-    )
+) -> HousingUnitResponse:
+    """Re-sync one existing record from Socrata using its stored source identity.
+
+    Returns 404 if the unit does not exist.
+    Returns 422 if the unit has no source identity (was created manually via POST).
+    """
+    logger.info("POST /v1/housing-units/%s/refresh", unit_id)
+    try:
+        unit = service.get_housing_unit(session, unit_id)
+    except NotFoundError:
+        raise _not_found(unit_id)
+
+    if not unit.project_id or not unit.building_id:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": ErrorCode.VALIDATION_ERROR,
+                "message": f"housing unit {unit_id} has no source identity — cannot refresh",
+                "details": [],
+            },
+        )
+
+    try:
+        refreshed = service.sync_from_source(session, unit.project_id, unit.building_id)
+        session.commit()
+    except NotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.NOT_FOUND,
+                "message": str(exc),
+                "details": [],
+            },
+        )
+    logger.info("POST /v1/housing-units/%s/refresh complete", unit_id)
+    return HousingUnitResponse.model_validate(refreshed)

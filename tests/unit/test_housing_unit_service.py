@@ -10,6 +10,7 @@ from app.services import housing_unit_service as service
 
 # all tests mock the repository so no DB is needed — service layer is pure python.
 MODULE = "app.services.housing_unit_service.repo"
+SOCRATA_MODULE = "app.services.housing_unit_service.socrata_client"
 
 
 def _make_unit(**kwargs) -> MagicMock:
@@ -147,3 +148,60 @@ def test_delete_housing_unit_allows_source_managed_rows() -> None:
          patch(f"{MODULE}.delete") as mock_delete:
         service.delete_housing_unit(session, 1)
     mock_delete.assert_called_once_with(session, 1)
+
+
+# ---------------------------------------------------------------------------
+# sync_from_source
+# ---------------------------------------------------------------------------
+
+
+def test_sync_from_source_returns_upserted_unit() -> None:
+    """Happy path: Socrata returns a record, upsert succeeds, unit is returned."""
+    raw_record = {"project_id": "P1", "building_id": "B1", "total_units": "10"}
+    upserted_unit = _make_unit(project_id="P1", building_id="B1")
+    session = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_by_source_id.return_value = raw_record
+    with patch(SOCRATA_MODULE, mock_client), \
+         patch(f"{MODULE}.upsert_from_source") as mock_upsert, \
+         patch(f"{MODULE}.get_by_source_identity", return_value=upserted_unit):
+        result = service.sync_from_source(session, "P1", "B1")
+    assert result is upserted_unit
+    mock_upsert.assert_called_once_with(session, [raw_record])
+
+
+def test_sync_from_source_raises_not_found_when_socrata_returns_none() -> None:
+    """NotFoundError is raised when Socrata has no record for the source identity."""
+    session = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_by_source_id.return_value = None
+    with patch(SOCRATA_MODULE, mock_client):
+        with pytest.raises(NotFoundError):
+            service.sync_from_source(session, "MISSING", "MISSING")
+
+
+def test_sync_from_source_raises_not_found_when_post_upsert_lookup_fails() -> None:
+    """NotFoundError is raised if the row cannot be fetched after the upsert (defensive)."""
+    raw_record = {"project_id": "P1", "building_id": "B1", "total_units": "5"}
+    session = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_by_source_id.return_value = raw_record
+    with patch(SOCRATA_MODULE, mock_client), \
+         patch(f"{MODULE}.upsert_from_source"), \
+         patch(f"{MODULE}.get_by_source_identity", return_value=None):
+        with pytest.raises(NotFoundError):
+            service.sync_from_source(session, "P1", "B1")
+
+
+def test_sync_from_source_passes_correct_ids_to_client() -> None:
+    """The client is called with exactly the project_id and building_id supplied."""
+    raw_record = {"project_id": "PROJ-X", "building_id": "BLD-Y", "total_units": "1"}
+    upserted_unit = _make_unit(project_id="PROJ-X", building_id="BLD-Y")
+    session = MagicMock()
+    mock_client = MagicMock()
+    mock_client.get_by_source_id.return_value = raw_record
+    with patch(SOCRATA_MODULE, mock_client), \
+         patch(f"{MODULE}.upsert_from_source"), \
+         patch(f"{MODULE}.get_by_source_identity", return_value=upserted_unit):
+        service.sync_from_source(session, "PROJ-X", "BLD-Y")
+    mock_client.get_by_source_id.assert_called_once_with("PROJ-X", "BLD-Y")

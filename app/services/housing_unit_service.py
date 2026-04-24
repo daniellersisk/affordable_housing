@@ -4,7 +4,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.errors import NotFoundError
+from app.clients.socrata_client import socrata_client
+from app.core.errors import NotFoundError, ValidationError
 from app.core.logging import get_logger
 from app.models.housing_unit import HousingUnit
 from app.repositories import housing_unit_repository as repo
@@ -60,3 +61,26 @@ def delete_housing_unit(session: Session, unit_id: int) -> None:
     if unit is None:
         raise NotFoundError(f"housing unit {unit_id} not found")
     repo.delete(session, unit_id)
+
+
+def sync_from_source(session: Session, project_id: str, building_id: str) -> HousingUnit:
+    """Fetch one record from Socrata and upsert it into the database.
+
+    Raises NotFoundError if Socrata returns no record for the given source identity.
+    Returns the upserted HousingUnit row as it exists in the database after the write.
+    Does not commit — the caller owns the transaction boundary.
+    """
+    logger.info("sync_from_source", extra={"project_id": project_id, "building_id": building_id})
+    record = socrata_client.get_by_source_id(project_id, building_id)
+    if record is None:
+        raise NotFoundError(
+            f"no Socrata record found for project_id={project_id} building_id={building_id}"
+        )
+    repo.upsert_from_source(session, [record])
+    unit = repo.get_by_source_identity(session, project_id, building_id)
+    if unit is None:
+        raise NotFoundError(
+            f"record not found after upsert for project_id={project_id} building_id={building_id}"
+        )
+    logger.info("sync_from_source complete", extra={"id": unit.id})
+    return unit

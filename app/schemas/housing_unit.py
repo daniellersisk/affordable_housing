@@ -95,6 +95,7 @@ class HousingUnitResponse(BaseModel):
     longitude: Longitude | None
     created_at: datetime
     updated_at: datetime
+    last_synced_from_socrata: datetime | None
 
 
 class HousingUnitListResponse(BaseModel):

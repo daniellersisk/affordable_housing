@@ -76,3 +76,10 @@ class HousingUnit(Base):
         server_default=text("now()"),
         onupdate=func.now(),
     )
+
+    # Set only when a row is written from Socrata (import or /refresh).
+    # NULL means the row was created manually via POST and has never been synced.
+    last_synced_from_socrata: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=False),
+        nullable=True,
+    )
