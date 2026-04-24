@@ -3,12 +3,12 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.constants import SOURCE_IDENTITY_CONSTRAINT, GeoShape
+from app.core.constants import SOURCE_IDENTITY_CONSTRAINT, GeoShape, SortOrder
 from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.models.housing_unit import HousingUnit
@@ -58,7 +58,9 @@ def list_with_filters(session: Session, filters: HousingUnitFilters) -> list[Hou
     elif filters.geo_shape == GeoShape.CIRCLE:
         stmt = _apply_circle_filter(stmt, filters)
 
-    stmt = stmt.order_by(HousingUnit.id).limit(filters.limit).offset(filters.offset)
+    sort_col = getattr(HousingUnit, filters.sort_by.value)
+    order_fn = asc if filters.sort_order == SortOrder.ASC else desc
+    stmt = stmt.order_by(order_fn(sort_col)).limit(filters.limit).offset(filters.offset)
 
     try:
         results = list(session.execute(stmt).scalars())

@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.core.constants import Borough, GeoShape
+from app.core.constants import Borough, GeoShape, SortField, SortOrder
 
 Latitude = Annotated[Decimal, Field(ge=Decimal("-90.000000"), le=Decimal("90.000000"))]
 Longitude = Annotated[Decimal, Field(ge=Decimal("-180.000000"), le=Decimal("180.000000"))]
@@ -38,6 +38,10 @@ class HousingUnitFilters(BaseModel):
     center_lat: Latitude | None = None
     center_lon: Longitude | None = None
     radius_m: float | None = None
+
+    # sorting
+    sort_by: SortField = SortField.ID
+    sort_order: SortOrder = SortOrder.ASC
 
     # pagination
     limit: int = 100

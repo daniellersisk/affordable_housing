@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.api.routes import health, housing_units
+from app.api.routes import analytics, health, housing_units
 from app.core.constants import ErrorCode
 
 app = FastAPI(
@@ -40,3 +40,4 @@ async def validation_exception_handler(
 app.include_router(health.router)
 app.include_router(housing_units.public_router)
 app.include_router(housing_units.private_router)
+app.include_router(analytics.router)

@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, require_write_auth
-from app.core.constants import ErrorCode, GeoShape
+from app.core.constants import ErrorCode, GeoShape, SortField, SortOrder
 from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.schemas.filters import HousingUnitFilters
@@ -76,11 +76,13 @@ def list_housing_units(
     center_lat: float | None = Query(default=None),
     center_lon: float | None = Query(default=None),
     radius_m: float | None = Query(default=None),
+    sort_by: SortField = Query(default=SortField.ID),
+    sort_order: SortOrder = Query(default=SortOrder.ASC),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_db),
 ) -> HousingUnitListResponse:
-    """List housing units with optional filters and pagination."""
+    """List housing units with optional filters, sorting, and pagination."""
     logger.info("GET /v1/housing-units")
     try:
         filters = HousingUnitFilters(
@@ -98,6 +100,8 @@ def list_housing_units(
             center_lat=center_lat,
             center_lon=center_lon,
             radius_m=radius_m,
+            sort_by=sort_by,
+            sort_order=sort_order,
             limit=limit,
             offset=offset,
         )
@@ -133,6 +137,53 @@ def get_housing_unit(
     except NotFoundError:
         raise _not_found(unit_id)
     return HousingUnitResponse.model_validate(unit)
+
+
+@public_router.get("/{unit_id}/nearby", response_model=HousingUnitListResponse)
+def get_nearby_housing_units(
+    unit_id: int,
+    radius_m: float = Query(..., gt=0, description="search radius in metres"),
+    limit: int = Query(default=10, ge=1, le=100),
+    session: Session = Depends(get_db),
+) -> HousingUnitListResponse:
+    """Return housing units within radius_m metres of the given unit.
+
+    Returns 404 if the unit does not exist or has no coordinates.
+    The requested unit is excluded from results.
+    """
+    logger.info("GET /v1/housing-units/%s/nearby", unit_id)
+    try:
+        unit = service.get_housing_unit(session, unit_id)
+    except NotFoundError:
+        raise _not_found(unit_id)
+
+    if unit.latitude is None or unit.longitude is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.NOT_FOUND,
+                "message": f"housing unit {unit_id} has no coordinates — nearby unavailable",
+                "details": [],
+            },
+        )
+
+    nearby_filters = HousingUnitFilters(
+        geo_shape=GeoShape.CIRCLE,
+        center_lat=unit.latitude,
+        center_lon=unit.longitude,
+        radius_m=radius_m,
+        limit=limit + 1,  # fetch one extra to allow excluding self
+        offset=0,
+    )
+    results = service.list_housing_units(session, nearby_filters)
+    nearby = [u for u in results if u.id != unit_id][:limit]
+
+    return HousingUnitListResponse(
+        items=[HousingUnitResponse.model_validate(u) for u in nearby],
+        total=len(nearby),
+        limit=limit,
+        offset=0,
+    )
 
 
 # ---------------------------------------------------------------------------
