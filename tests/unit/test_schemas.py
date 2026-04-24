@@ -107,6 +107,26 @@ def test_create_negative_num_units_raises() -> None:
         HousingUnitCreate(num_units=-1)
 
 
+def test_create_postcode_non_numeric_raises() -> None:
+    with pytest.raises(ValidationError):
+        HousingUnitCreate(num_units=10, postcode="1001A")
+
+
+def test_create_postcode_numeric_valid() -> None:
+    body = HousingUnitCreate(num_units=10, postcode="10001")
+    assert body.postcode == "10001"
+
+
+def test_update_postcode_non_numeric_raises() -> None:
+    with pytest.raises(ValidationError):
+        HousingUnitUpdate(postcode="abc")
+
+
+def test_filters_postcode_non_numeric_raises() -> None:
+    with pytest.raises(ValidationError):
+        HousingUnitFilters(postcode="10001A")
+
+
 def test_create_zero_num_units_valid() -> None:
     body = HousingUnitCreate(num_units=0)
     assert body.num_units == 0

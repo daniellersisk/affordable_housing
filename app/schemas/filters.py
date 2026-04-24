@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from app.core.constants import GeoShape
 
@@ -38,6 +38,13 @@ class HousingUnitFilters(BaseModel):
     # pagination
     limit: int = 100
     offset: int = 0
+
+    @field_validator("postcode")
+    @classmethod
+    def postcode_digits_only(cls, v: str | None) -> str | None:
+        if v is not None and not v.isdigit():
+            raise ValueError("postcode must contain digits only")
+        return v
 
     @model_validator(mode="after")
     def validate_geo(self) -> HousingUnitFilters:

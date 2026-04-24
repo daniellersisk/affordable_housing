@@ -3,7 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+def _validate_postcode(value: str | None) -> str | None:
+    if value is not None and not value.isdigit():
+        raise ValueError("postcode must contain digits only")
+    return value
 
 
 class HousingUnitCreate(BaseModel):
@@ -19,6 +25,11 @@ class HousingUnitCreate(BaseModel):
     project_id: str | None = None
     building_id: str | None = None
 
+    @field_validator("postcode")
+    @classmethod
+    def postcode_digits_only(cls, v: str | None) -> str | None:
+        return _validate_postcode(v)
+
 
 class HousingUnitUpdate(BaseModel):
     """Request body for PUT /housing-units/{id}."""
@@ -30,6 +41,11 @@ class HousingUnitUpdate(BaseModel):
     num_units: int | None = Field(default=None, ge=0)
     latitude: Decimal | None = None
     longitude: Decimal | None = None
+
+    @field_validator("postcode")
+    @classmethod
+    def postcode_digits_only(cls, v: str | None) -> str | None:
+        return _validate_postcode(v)
 
 
 class HousingUnitResponse(BaseModel):
