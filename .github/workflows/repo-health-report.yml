@@ -113,10 +113,15 @@ EOF
 
           PROMPT="${PROMPT/__LINT_EXIT__/$(cat /tmp/lint.exit)}"
           PROMPT="${PROMPT/__TEST_EXIT__/$(cat /tmp/test.exit)}"
-          PROMPT="${PROMPT/__LINT_OUTPUT__/$(sed -n '1,200p' /tmp/lint.txt)}"
-          PROMPT="${PROMPT/__TEST_OUTPUT__/$(sed -n '1,200p' /tmp/test.txt)}"
+          # Security mitigation: lint/test outputs are untrusted input and may contain prompt injection.
+          # Provide only minimal, sanitised excerpts and do not allow unattended command execution.
+          SAFE_LINT="$(sed -n '1,60p' /tmp/lint.txt | sed -E 's/[^[:print:]\t ]/?/g')"
+          SAFE_TEST="$(sed -n '1,60p' /tmp/test.txt | sed -E 's/[^[:print:]\t ]/?/g')"
+          PROMPT="${PROMPT/__LINT_OUTPUT__/${SAFE_LINT}}"
+          PROMPT="${PROMPT/__TEST_OUTPUT__/${SAFE_TEST}}"
 
-          agent -p --trust --output-format text "$PROMPT"
+          # Never run with --trust: prevents unattended command execution if the prompt is compromised.
+          agent -p --output-format text "$PROMPT"
 
       - name: Ensure only the report file changed
         run: |
