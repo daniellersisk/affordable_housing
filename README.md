@@ -227,17 +227,17 @@ Rationale: nearly all data in the DB will be source-managed after import. Blocki
 Planned initial table: `housing_units`
 
 - `id`: internal primary key used by the API
-- `project_id`: source identifier
-- `building_id`: source identifier
-- `street_name`
-- `borough`
-- `postcode`
-- `construction_type`
-- `num_units`: normalized from source field `total_units`
-- `latitude`
-- `longitude`
-- `created_at`
-- `updated_at`
+- `project_id`: source identifier (string)
+- `building_id`: source identifier (string)
+- `street_name`: max 200 characters
+- `borough`: one of `MANHATTAN`, `BROOKLYN`, `QUEENS`, `BRONX`, `STATEN ISLAND` — normalized to uppercase at write time; source data uses mixed case (`"Queens"`)
+- `postcode`: exactly 5 digits — all NYC postcodes confirmed 5-digit from Socrata source data; stored as string to preserve leading zeros
+- `construction_type`: free text — mapped from source field `reporting_construction_type` at write time
+- `num_units`: integer >= 0; normalized from source field `total_units` (source sends strings, cast to int at write time)
+- `latitude`: `Numeric(9,6)`, valid range -90 to 90
+- `longitude`: `Numeric(9,6)`, valid range -180 to 180; returned as `Decimal` string in responses to preserve precision
+- `created_at`: set by DB on insert
+- `updated_at`: set by DB on insert, updated automatically by SQLAlchemy ORM on any write
 
 Initial indexing strategy:
 
