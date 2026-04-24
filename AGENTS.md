@@ -176,8 +176,7 @@ When QA review is requested, use `agents/qa.mdc` and validate:
 - `POST /v1/housing-units`
 - `PUT /v1/housing-units/{id}`
 - `DELETE /v1/housing-units/{id}`
-- `POST /v1/housing-units/{id}/refresh` — re-sync one existing record from Socrata using its `project_id` + `building_id`. No request body. Returns `404` if the unit does not exist, `422` if the unit has no source identity.
-- `POST /v1/housing-units/sync` — fetch and upsert a specific Socrata record by source identity. Body: `{ project_id, building_id }`. Inserts if not yet in DB, updates if already present. Use this to add or re-sync a single record without running a full import.
+- `POST /v1/housing-units/{id}/refresh` — re-sync one existing record from Socrata using its `project_id` + `building_id`. No request body. Returns `404` if the unit does not exist, `422` if the unit has no source identity. For bulk or first-time seeding use `make import`.
 
 ### Mutation operations — full reference
 
@@ -185,10 +184,9 @@ When QA review is requested, use `agents/qa.mdc` and validate:
 |---|---|---|---|---|
 | user edit | `PUT /v1/housing-units/{id}` | no | user data | update any field manually |
 | re-sync one known record | `POST /v1/housing-units/{id}/refresh` | yes | none | refresh a record already in the DB |
-| add/sync by source identity | `POST /v1/housing-units/sync` | yes | `{ project_id, building_id }` | sync one specific Socrata record without a full import |
-| bulk re-sync | `make refresh` / `make import` | yes | none | re-import everything from Socrata |
+| bulk re-sync / initial seed | `make import` | yes | none | import or re-import everything from Socrata |
 
-Both `/refresh` and `/sync` depend on the Socrata client (Phase 4) and land in the same change set.
+`/refresh` depends on the Socrata client (Phase 4) and lands in the same change set.
 
 ## Definition of Done
 

@@ -255,16 +255,3 @@ def refresh_housing_unit(
         message="refresh endpoint will be available once the Socrata client is implemented",
         details=[],
     )
-
-
-@private_router.post("/sync", status_code=status.HTTP_501_NOT_IMPLEMENTED)
-def sync_housing_unit(
-    _auth: None = Depends(require_write_auth),
-) -> ErrorResponse:
-    """Sync a specific Socrata record into the DB by source identity. Implemented in Phase 4."""
-    logger.info("POST /v1/housing-units/sync (not yet implemented)")
-    return ErrorResponse(
-        code="NOT_IMPLEMENTED",
-        message="sync endpoint will be available once the Socrata client is implemented",
-        details=[],
-    )
