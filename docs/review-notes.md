@@ -42,9 +42,8 @@ Per the repo standards, reviewers should treat **test and contract completeness 
 
 Write routes require `X-API-Key` (configured via `WRITE_API_KEY` in `.env`).
 
-Note: `.env.example` intentionally leaves `WRITE_API_KEY` blank (it is shared separately for review). If you copy
-`.env.example` to `.env`, set `WRITE_API_KEY` before starting the stack, or set `API_AUTH_ENABLED=false` to explore
-read-only endpoints without write auth.
+Note: `.env.example` includes a local-dev `WRITE_API_KEY`. In production, set a strong random key via your secret
+manager.
 
 ## Intentional trade-offs
 

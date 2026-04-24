@@ -16,9 +16,6 @@ jobs:
       - name: Create .env from example
         run: |
           cp .env.example .env
-          # CI needs auth enabled but must not rely on secrets distribution.
-          # Provide a dummy local-only write key so settings validation passes.
-          echo "WRITE_API_KEY=ci-test-key" >> .env
 
       - name: Build images
         run: docker compose build
@@ -38,9 +35,6 @@ jobs:
       - name: Create .env from example
         run: |
           cp .env.example .env
-          # CI needs auth enabled but must not rely on secrets distribution.
-          # Provide a dummy local-only write key so settings validation passes.
-          echo "WRITE_API_KEY=ci-test-key" >> .env
 
       - name: Build images
         run: docker compose build
@@ -78,7 +72,6 @@ jobs:
       - name: Create .env from example
         run: |
           cp .env.example .env
-          echo "WRITE_API_KEY=ci-test-key" >> .env
 
       - name: Build images
         run: docker compose build

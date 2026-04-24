@@ -24,8 +24,6 @@ jobs:
       - name: Create .env from example
         run: |
           cp .env.example .env
-          # Provide a dummy key so auth-enabled settings validation passes in CI.
-          echo "WRITE_API_KEY=ci-test-key" >> .env
 
       - name: Build images
         run: docker compose build
