@@ -65,13 +65,13 @@ Startup sequence:
 - FastAPI binds to `0.0.0.0` and is reachable on localhost
 
 > **The database starts empty.** `make up` does not load NYC housing data automatically.
-> After the stack is running, seed the database with the full ~44k records from NYC Open Data:
+> After the stack is running, seed the database with the NYC Open Data records (currently ~12.8k rows):
 >
 > ```bash
 > make import
 > ```
 >
-> This is intentional — the import takes a few minutes and is not required for local development or running tests. Re-running `make import` is safe (idempotent upsert). To preview what would be imported without writing anything, run `make import -- --dry-run`.
+> This is intentional — the import takes a few minutes and is not required for local development or running tests. Re-running `make import` is safe (idempotent upsert). To preview what would be imported without writing anything, run `make import ARGS=--dry-run`.
 
 ## Why This Stack
 
