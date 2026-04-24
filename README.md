@@ -14,7 +14,7 @@ The project is intentionally being delivered in layers:
 4. build domain logic before widening the HTTP surface
 5. expose documented API contracts through FastAPI and Swagger UI
 
-That sequence keeps the challenge easy to review, easier to test, and easier to discuss in an interview. The current repo is at the end of Step 3: Docker, Postgres orchestration, health checks, centralized settings, CI, SQLAlchemy models, Alembic migrations, and a real DB session layer are all in place. The domain, service, and API layers are next.
+That sequence keeps the challenge easy to review, easier to test, and easier to discuss in an interview. The current repo has progressed through Steps 1–6: Docker + Postgres + migrations, a repository/service layer, CRUD + filtering endpoints with documented contracts, and a Socrata-backed import/refresh workflow are all in place. Remaining work is largely hardening and completeness (production-grade geo queries, expanded contract coverage, and operational polish).
 
 ## Current Baseline
 
@@ -37,11 +37,10 @@ What is implemented today:
 
 What is not implemented yet:
 
-- repository and service layer (Step 4)
-- `housing_units` CRUD endpoints and Pydantic schemas (Step 5)
-- NYC open-data import script (Step 6)
-- auth enforcement on write routes (Step 7)
-- full contract, integration, and e2e coverage (Step 8)
+- full RBAC beyond a single write key (viewer/editor/admin roles) (Step 7+)
+- production-grade geo queries (e.g. PostGIS `ST_DWithin`) to replace the current circle/bounding-box approximation
+- expanded contract + e2e coverage (including negative/auth paths for every endpoint) (Step 8)
+- production readiness hardening (rate limiting, security headers, observability/audit logging, and deployment runbooks)
 
 ## Quickstart
 
@@ -54,6 +53,19 @@ cp .env.example .env
 # 2) start the stack (API + Postgres)
 make up
 ```
+
+## Read-only access (interview reviewers)
+
+If you are reviewing this repository and were given a **short-lived, repo-scoped, read-only** GitHub fine-grained personal access token (PAT), you can clone the private repo using:
+
+```bash
+git clone https://daniellesisk:<TOKEN>@github.com/daniellesisk/affordable_housing.git
+```
+
+Notes:
+
+- Do not share the token in screenshots, logs, or shell history.
+- The token should expire automatically; it may also be revoked at any time after review.
 
 Then open:
 
@@ -70,14 +82,14 @@ Startup sequence:
 - FastAPI binds to `0.0.0.0` and is reachable on localhost
 
 > **The database starts empty.** `make up` does not load NYC housing data automatically.
-> After the stack is running, seed the database with the NYC Open Data records (currently ~12.8k rows):
+> After the stack is running, seed the database with the NYC Open Data records (dataset size changes over time):
 >
 > ```bash
 > make import
 > ```
 >
 > This is intentional — the import takes a few minutes and is not required for local development or running tests.
-> Re-running `make import` is safe (idempotent upsert). To preview what would be imported without writing anything:
+> Re-running `make import` is safe (idempotent upsert). Import idempotency is keyed off **Socrata’s system row id** `:id` (stored in Postgres as `housing_units.socrata_row_id`, i.e. the Socrata ID for that upstream row). To preview what would be imported without writing anything:
 >
 > ```bash
 > make import ARGS=--dry-run
@@ -1036,7 +1048,7 @@ Once Step 6 lands, populate the database with NYC open data:
 docker compose run --rm api python -m app.scripts.import_nyc_data
 ```
 
-Run this once. The named volume persists the data across all subsequent starts — you do not need to re-import unless you explicitly wipe the volume with `docker compose down -v`. Re-running the import is always safe: `upsert_from_source` is idempotent on `(project_id, building_id)` so no duplicate rows will be created.
+Run this once. The named volume persists the data across all subsequent starts — you do not need to re-import unless you explicitly wipe the volume with `docker compose down -v`. Re-running the import is always safe: `upsert_from_source` is idempotent on the **Socrata ID** (`:id`, stored as `housing_units.socrata_row_id`) so no duplicate rows will be created.
 
 ### 6. Tear down
 

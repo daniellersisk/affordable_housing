@@ -15,6 +15,7 @@ SOCRATA_PATCH = "app.services.housing_unit_service.socrata_client"
 
 def _source_record(project_id: str = "PROJ-1", building_id: str = "BLD-1") -> dict:
     return {
+        ":id": "999",
         "project_id": project_id,
         "building_id": building_id,
         "total_units": "42",

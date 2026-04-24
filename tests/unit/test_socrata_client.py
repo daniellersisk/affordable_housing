@@ -26,9 +26,9 @@ _SETTINGS = Settings(
     ingest_max_retries=3,
 )
 
-_RECORD_A = {"project_id": "P1", "building_id": "B1", "total_units": "10"}
-_RECORD_B = {"project_id": "P2", "building_id": "B2", "total_units": "20"}
-_RECORD_C = {"project_id": "P3", "building_id": "B3", "total_units": "30"}
+_RECORD_A = {":id": "1", "project_id": "P1", "building_id": "B1", "total_units": "10"}
+_RECORD_B = {":id": "2", "project_id": "P2", "building_id": "B2", "total_units": "20"}
+_RECORD_C = {":id": "3", "project_id": "P3", "building_id": "B3", "total_units": "30"}
 
 
 def _mock_response(data: list[dict], status_code: int = 200) -> MagicMock:
@@ -89,6 +89,9 @@ def test_get_all_advances_offset_correctly() -> None:
     second_params = mock_get.call_args_list[1].kwargs["params"]
     assert first_params["$offset"] == "0"
     assert second_params["$offset"] == "2"
+    # We always request the Socrata system id so imports are idempotent.
+    assert "$select" in first_params
+    assert ":id" in first_params["$select"]
 
 
 def test_get_all_sends_app_token_header() -> None:

@@ -18,6 +18,25 @@ logger = get_logger(__name__)
 # Retry back-off base in seconds: attempt 1 → 1s, attempt 2 → 2s, attempt 3 → 4s.
 _BACKOFF_BASE = 1
 
+# Socrata returns a system row identifier field named ":id".
+_SOCRATA_ROW_ID_FIELD = ":id"
+
+# Fields we persist in our DB (keep this list centralized to avoid drifting selects).
+_INGEST_SELECT_FIELDS = [
+    _SOCRATA_ROW_ID_FIELD,
+    "project_id",
+    "building_id",
+    "street_name",
+    "postcode",
+    "borough",
+    "reporting_construction_type",
+    "total_units",
+    "latitude",
+    "longitude",
+]
+
+_INGEST_SELECT = ",".join(_INGEST_SELECT_FIELDS)
+
 
 class SocrataClient:
     """Paginated Socrata SODA client for the NYC affordable-housing dataset."""
@@ -66,7 +85,7 @@ class SocrataClient:
         safe_pid = _escape_soql(project_id)
         safe_bid = _escape_soql(building_id)
         where = f"project_id='{safe_pid}' AND building_id='{safe_bid}'"
-        results = self._get({"$where": where, "$limit": "1"})
+        results = self._get({"$where": where, "$limit": "1", "$select": _INGEST_SELECT})
         return results[0] if results else None
 
     # ------------------------------------------------------------------
@@ -75,7 +94,14 @@ class SocrataClient:
 
     def _fetch_page(self, offset: int, limit: int) -> list[dict]:
         logger.info("socrata fetch page", extra={"offset": offset, "limit": limit})
-        return self._get({"$limit": str(limit), "$offset": str(offset), "$order": ":id"})
+        return self._get(
+            {
+                "$limit": str(limit),
+                "$offset": str(offset),
+                "$order": _SOCRATA_ROW_ID_FIELD,
+                "$select": _INGEST_SELECT,
+            }
+        )
 
     def _get(self, params: dict[str, str]) -> list[dict]:
         """GET the resource endpoint with the given query params.

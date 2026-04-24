@@ -28,6 +28,10 @@ class HousingUnit(Base):
 
     __table_args__ = (
         UniqueConstraint(
+            "socrata_row_id",
+            name="uq_housing_units_socrata_row_id",
+        ),
+        UniqueConstraint(
             "project_id",
             "building_id",
             name="uq_housing_units_project_building",
@@ -49,6 +53,10 @@ class HousingUnit(Base):
     # Nullable so manually created records are allowed without source IDs.
     project_id: Mapped[str | None] = mapped_column(String, nullable=True)
     building_id: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # Socrata system row id (":id") — stable upstream identity for every source row.
+    # Nullable so manually created records do not require a source identity.
+    socrata_row_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Filterable string fields — indexed individually for single-column queries.
     street_name: Mapped[str | None] = mapped_column(String, nullable=True)
