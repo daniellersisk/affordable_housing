@@ -61,11 +61,8 @@ class SocrataClient:
         """
         safe_pid = _escape_soql(project_id)
         safe_bid = _escape_soql(building_id)
-        query = (
-            f"SELECT * WHERE project_id = '{safe_pid}'"
-            f" AND building_id = '{safe_bid}' LIMIT 1"
-        )
-        results = self._post_query(query)
+        where = f"project_id='{safe_pid}' AND building_id='{safe_bid}'"
+        results = self._get({"$where": where, "$limit": "1"})
         return results[0] if results else None
 
     # ------------------------------------------------------------------
@@ -73,21 +70,20 @@ class SocrataClient:
     # ------------------------------------------------------------------
 
     def _fetch_page(self, offset: int, limit: int) -> list[dict]:
-        query = f"SELECT * LIMIT {limit} OFFSET {offset}"
         logger.info("socrata fetch page", extra={"offset": offset, "limit": limit})
-        return self._post_query(query)
+        return self._get({"$limit": str(limit), "$offset": str(offset), "$order": ":id"})
 
-    def _post_query(self, query: str) -> list[dict]:
-        """POST a SoQL query and return the parsed JSON array.
+    def _get(self, params: dict[str, str]) -> list[dict]:
+        """GET the resource endpoint with the given query params.
 
         Retries up to max_retries times with exponential back-off on
         transient HTTP or network errors.  Raises on permanent failure.
         """
         for attempt in range(1, self._max_retries + 1):
             try:
-                response = httpx.post(
+                response = httpx.get(
                     self._url,
-                    data={"$query": query},
+                    params=params,
                     headers=self._headers,
                     timeout=float(self._timeout),
                 )

@@ -97,8 +97,8 @@ class Settings:
         if self.nyc_open_data_url:
             return self.nyc_open_data_url
         return (
-            f"{self.nyc_open_data_base_url}/api/v3/views/"
-            f"{self.nyc_open_data_view_id}/query.json"
+            f"{self.nyc_open_data_base_url}/resource/"
+            f"{self.nyc_open_data_view_id}.json"
         )
 
 

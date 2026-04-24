@@ -60,7 +60,7 @@ HTTP request
 - Use Socrata dataset API access for `hg8x-zxpr`; do not hardcode one endpoint style in business code.
 - Configure and send `SODA_APP_TOKEN` for ingestion (required outside local development).
 - Pagination is mandatory for imports (`get_all()` or explicit page/offset loop).
-- Use HTTP `POST` for Socrata ingestion queries (`query.json`) instead of `GET`.
+- Use the SODA v2 resource endpoint (`/resource/{id}.json`) with `$limit`, `$offset`, `$order=:id` for pagination and `$where` for single-record lookup.
 - Keep external data access in one shared ingestion client (no duplicated API clients).
 - Keep ingestion retry/pagination/timeout values in config (`INGEST_PAGE_SIZE`, `INGEST_TIMEOUT_SECONDS`, `INGEST_MAX_RETRIES`).
 - Normalize source fields at write-time before persistence.

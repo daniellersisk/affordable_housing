@@ -2,6 +2,9 @@
 # Run after migrations:
 #   docker compose run --rm api python -m app.scripts.import_nyc_data
 #
+# Dry-run mode (no DB writes, first page only):
+#   docker compose run --rm api python -m app.scripts.import_nyc_data --dry-run
+#
 # Idempotent: re-running does not duplicate records — upsert merges on
 # (project_id, building_id). Each page is committed independently so a
 # mid-run failure leaves already-processed pages intact.
@@ -17,16 +20,25 @@ from app.settings import settings
 
 logger = get_logger(__name__)
 
+_DRY_RUN_PREVIEW_COUNT = 3
 
-def main() -> None:
+
+def main(dry_run: bool = False) -> None:
     client = SocrataClient(settings)
-    session = SessionLocal()
 
+    logger.info(
+        "import started",
+        extra={"url": settings.resolved_open_data_url, "dry_run": dry_run},
+    )
+
+    if dry_run:
+        _run_dry(client)
+        return
+
+    session = SessionLocal()
     total_upserted = 0
     pages_processed = 0
     errors = 0
-
-    logger.info("import started", extra={"url": settings.resolved_open_data_url})
 
     try:
         for page in client.get_all():
@@ -61,5 +73,58 @@ def main() -> None:
         sys.exit(1)
 
 
+def _run_dry(client: SocrataClient) -> None:
+    """Fetch first page only, log field mapping and sample records — no DB writes."""
+    print("=== DRY RUN — no data will be written to the database ===")
+    print(f"Socrata URL: {settings.resolved_open_data_url}")
+    print(f"Page size  : {settings.ingest_page_size}")
+    print(f"App token  : {'set' if settings.soda_app_token else 'NOT SET (rate limits apply)'}")
+    print()
+
+    try:
+        page = client._fetch_page(0, settings.ingest_page_size)
+    except Exception as exc:
+        print(f"ERROR: could not fetch from Socrata — {exc}")
+        sys.exit(1)
+
+    if not page:
+        print("Socrata returned 0 records. Check the dataset ID and URL.")
+        sys.exit(0)
+
+    print(f"First page returned {len(page)} records.")
+    print()
+
+    first = page[0]
+    print("--- Raw source fields (first record) ---")
+    for key, value in sorted(first.items()):
+        print(f"  {key}: {value!r}")
+
+    print()
+    print("--- Field mapping applied at write time ---")
+    mapping = {
+        "total_units": "num_units (int cast)",
+        "reporting_construction_type": "construction_type",
+        "borough": "borough (uppercased)",
+    }
+    for src, dst in mapping.items():
+        present = "✓ present" if src in first else "— not in this record"
+        print(f"  {src} → {dst}  [{present}]")
+
+    print()
+    print(f"--- Sample records (first {_DRY_RUN_PREVIEW_COUNT}) ---")
+    for i, rec in enumerate(page[:_DRY_RUN_PREVIEW_COUNT], 1):
+        print(
+            f"  [{i}] project_id={rec.get('project_id')!r}"
+            f"  building_id={rec.get('building_id')!r}"
+            f"  total_units={rec.get('total_units')!r}"
+            f"  borough={rec.get('borough')!r}"
+            f"  street_name={rec.get('street_name')!r}"
+        )
+
+    print()
+    print("=== Dry run complete — re-run without --dry-run to import ===")
+
+
 if __name__ == "__main__":
-    main()
+    dry_run = "--dry-run" in sys.argv
+    main(dry_run=dry_run)

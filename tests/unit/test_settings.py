@@ -78,7 +78,7 @@ def test_load_settings_builds_open_data_url_from_base_and_view_id(
 
     assert (
         loaded.resolved_open_data_url
-        == "https://data.cityofnewyork.us/api/v3/views/hg8x-zxpr/query.json"
+        == "https://data.cityofnewyork.us/resource/hg8x-zxpr.json"
     )
 
 
