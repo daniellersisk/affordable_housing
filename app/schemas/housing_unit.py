@@ -6,9 +6,17 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-# latitude: -90.0 to 90.0, 6 decimal places (matches DB Numeric(9,6))
+# latitude and longitude are stored as Numeric(9,6) in postgres — 9 total digits, 6 after
+# the decimal point. valid ranges are -90/90 for lat and -180/180 for lon.
+#
+# they are returned as Decimal strings in json responses (e.g. "40.712800") rather than
+# floats. this is intentional: python floats lose precision for geographic coordinates
+# (e.g. 40.7128 stored as float may round to 40.71280000000001 in json). Decimal
+# preserves the exact value as stored in the DB.
+#
+# consumers reading the API should parse latitude/longitude as float or Decimal —
+# both work. the extra string precision is harmless and avoids silent rounding bugs.
 Latitude = Annotated[Decimal, Field(ge=Decimal("-90.000000"), le=Decimal("90.000000"))]
-# longitude: -180.0 to 180.0, 6 decimal places (matches DB Numeric(9,6))
 Longitude = Annotated[Decimal, Field(ge=Decimal("-180.000000"), le=Decimal("180.000000"))]
 
 
