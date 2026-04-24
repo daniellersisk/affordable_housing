@@ -1,7 +1,7 @@
 name: Repo health report (automated)
 # Trigger: Bugbot/PR review run
 
-on:
+"on":
   schedule:
     # Every Monday at 9am UTC
     - cron: "0 9 * * 1"
