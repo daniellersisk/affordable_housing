@@ -1,4 +1,5 @@
 name: Repo health report (automated)
+# Trigger: Bugbot/PR review run
 
 on:
   schedule:
