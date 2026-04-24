@@ -258,13 +258,19 @@ The source dataset is NYC Open Data dataset `hg8x-zxpr`.
 
 Design choices:
 
-- use the Socrata dataset API
+- use the Socrata SODA v2 resource endpoint (`/resource/{id}.json`) with `$limit`, `$offset`, `$order=:id`
 - send `SODA_APP_TOKEN` outside local-only scenarios
-- paginate every import
-- use HTTP `POST` to `query.json` for ingestion requests
-- centralize upstream access in one shared ingestion client
+- paginate every import (2000 records per page)
+- centralize upstream access in one shared ingestion client (`app/clients/socrata_client.py`)
 - normalize source data at write time before persistence
 - map source `total_units` to internal/API field `num_units`
+- unknown source fields are silently dropped — safe when upstream dataset adds columns
+
+### Known limitation — upsert-only import
+
+`make import` is an **upsert** (INSERT ON CONFLICT DO UPDATE). It will not delete rows that have been removed from the Socrata dataset. If NYC Open Data removes a building record, your local DB retains it until you manually delete it via `DELETE /v1/housing-units/{id}`.
+
+A full sync-with-delete would require fetching all source `(project_id, building_id)` pairs, diffing against the DB, and issuing deletes for any that no longer exist upstream. This is a known future improvement tracked separately.
 
 Recommended ingestion settings:
 
