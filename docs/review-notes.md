@@ -31,6 +31,13 @@ make test
 make lint
 ```
 
+## Review scope note (tests/contracts are required)
+
+Per the repo standards, reviewers should treat **test and contract completeness as in-scope and required**:
+
+- **Endpoint tests**: each endpoint should have coverage for success, validation failure, not-found/conflict (as applicable), and auth failure (where applicable).
+- **Contract tests**: should verify status codes, response schema shape, and error schema shape (including consistent `{ code, message, details }` error payloads).
+
 ## Auth
 
 Write routes require `X-API-Key` (configured via `WRITE_API_KEY` in `.env`).
