@@ -23,7 +23,8 @@ def test_filters_no_geo_params_valid() -> None:
 def test_filters_geo_params_without_geo_shape_raises() -> None:
     with pytest.raises(ValidationError) as exc_info:
         HousingUnitFilters(min_lat=Decimal("40.6"))
-    assert "INVALID_GEO_FILTER" in str(exc_info.value)
+    errors = exc_info.value.errors()
+    assert errors[0]["type"] == "invalid_geo_filter"
 
 
 def test_filters_rectangle_all_params_valid() -> None:
@@ -44,7 +45,8 @@ def test_filters_rectangle_missing_param_raises() -> None:
             min_lat=Decimal("40.6"),
             max_lat=Decimal("40.8"),
         )
-    assert "INVALID_GEO_FILTER" in str(exc_info.value)
+    errors = exc_info.value.errors()
+    assert errors[0]["type"] == "invalid_geo_filter"
 
 
 def test_filters_circle_all_params_valid() -> None:
@@ -64,7 +66,8 @@ def test_filters_circle_missing_radius_raises() -> None:
             center_lat=Decimal("40.7128"),
             center_lon=Decimal("-74.0060"),
         )
-    assert "INVALID_GEO_FILTER" in str(exc_info.value)
+    errors = exc_info.value.errors()
+    assert errors[0]["type"] == "invalid_geo_filter"
 
 
 def test_filters_rectangle_with_extra_circle_params_is_valid() -> None:

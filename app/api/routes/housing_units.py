@@ -106,19 +106,22 @@ def list_housing_units(
         )
     except ValidationError as exc:
         first = exc.errors()[0]
-        msg = first["msg"].removeprefix("Value error, ")
-        is_geo = "INVALID_GEO_FILTER" in msg
-        code = ErrorCode.INVALID_GEO_FILTER if is_geo else ErrorCode.VALIDATION_ERROR
-        clean_msg = msg.split("|")[0]
+        code = (
+            ErrorCode.INVALID_GEO_FILTER
+            if first.get("type") == "invalid_geo_filter"
+            else ErrorCode.VALIDATION_ERROR
+        )
+        clean_msg = first.get("msg", "validation error")
         raise HTTPException(
             status_code=422,
             detail={"code": code, "message": clean_msg, "details": []},
         ) from exc
 
     units = service.list_housing_units(session, filters)
+    total = service.count_housing_units(session, filters)
     return HousingUnitListResponse(
         items=[HousingUnitResponse.model_validate(u) for u in units],
-        total=len(units),
+        total=total,
         limit=limit,
         offset=offset,
     )

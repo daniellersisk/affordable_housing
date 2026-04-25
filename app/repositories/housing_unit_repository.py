@@ -43,26 +43,7 @@ def get_by_id(session: Session, unit_id: int) -> HousingUnit | None:
 
 def list_with_filters(session: Session, filters: HousingUnitFilters) -> list[HousingUnit]:
     """Return housing units matching all provided filters with pagination."""
-    stmt = select(HousingUnit)
-
-    if filters.street_name:
-        stmt = stmt.where(HousingUnit.street_name.ilike(f"%{filters.street_name}%"))
-    if filters.borough:
-        # exact case-insensitive match — ilike without wildcards
-        stmt = stmt.where(HousingUnit.borough.ilike(filters.borough))
-    if filters.postcode:
-        stmt = stmt.where(HousingUnit.postcode == filters.postcode)
-    if filters.construction_type:
-        stmt = stmt.where(HousingUnit.construction_type.ilike(f"%{filters.construction_type}%"))
-    if filters.num_units_min is not None:
-        stmt = stmt.where(HousingUnit.num_units >= filters.num_units_min)
-    if filters.num_units_max is not None:
-        stmt = stmt.where(HousingUnit.num_units <= filters.num_units_max)
-
-    if filters.geo_shape == GeoShape.RECTANGLE:
-        stmt = _apply_rectangle_filter(stmt, filters)
-    elif filters.geo_shape == GeoShape.CIRCLE:
-        stmt = _apply_circle_filter(stmt, filters)
+    stmt = _apply_filters(select(HousingUnit), filters)
 
     sort_col = getattr(HousingUnit, filters.sort_by.value)
     order_fn = asc if filters.sort_order == SortOrder.ASC else desc
@@ -74,6 +55,19 @@ def list_with_filters(session: Session, filters: HousingUnitFilters) -> list[Hou
         return results
     except SQLAlchemyError as exc:
         logger.error("list_with_filters failed", extra={"error": str(exc)})
+        raise
+
+
+def count_with_filters(session: Session, filters: HousingUnitFilters) -> int:
+    """Return the total number of housing units matching the provided filters.
+
+    Excludes pagination (limit/offset) by design so API callers can build pagination UX.
+    """
+    stmt = _apply_filters(select(func.count(HousingUnit.id)), filters)
+    try:
+        return int(session.execute(stmt).scalar_one())
+    except SQLAlchemyError as exc:
+        logger.error("count_with_filters failed", extra={"error": str(exc)})
         raise
 
 
@@ -326,6 +320,30 @@ def _has_complete_source_identity(record: dict[str, Any]) -> bool:
     if str(project_id).strip() == "" or str(building_id).strip() == "":
         return False
     return True
+
+
+def _apply_filters(stmt: Any, filters: HousingUnitFilters) -> Any:
+    """Apply WHERE clauses (but not ORDER BY or pagination)."""
+    if filters.street_name:
+        stmt = stmt.where(HousingUnit.street_name.ilike(f"%{filters.street_name}%"))
+    if filters.borough:
+        # exact case-insensitive match — ilike without wildcards
+        stmt = stmt.where(HousingUnit.borough.ilike(filters.borough))
+    if filters.postcode:
+        stmt = stmt.where(HousingUnit.postcode == filters.postcode)
+    if filters.construction_type:
+        stmt = stmt.where(HousingUnit.construction_type.ilike(f"%{filters.construction_type}%"))
+    if filters.num_units_min is not None:
+        stmt = stmt.where(HousingUnit.num_units >= filters.num_units_min)
+    if filters.num_units_max is not None:
+        stmt = stmt.where(HousingUnit.num_units <= filters.num_units_max)
+
+    if filters.geo_shape == GeoShape.RECTANGLE:
+        stmt = _apply_rectangle_filter(stmt, filters)
+    elif filters.geo_shape == GeoShape.CIRCLE:
+        stmt = _apply_circle_filter(stmt, filters)
+
+    return stmt
 
 def _apply_rectangle_filter(stmt: Any, filters: HousingUnitFilters) -> Any:
     """Apply a bounding box WHERE clause for geo_shape=rectangle."""

@@ -26,7 +26,7 @@ alwaysApply: true
 - Normalize source fields at write-time; map source `total_units` -> `num_units`; use internal API `id` with composite source uniqueness (`project_id`, `building_id`).
 - Geo filtering uses a single endpoint discriminator: `geo_shape=rectangle|circle`; enforce required params per shape and return `422` with `{ code, message, details }` for mixed/missing shape params.
 - If any geo params are provided without `geo_shape`, return `422` with `code=INVALID_GEO_FILTER`.
-- Treat source-managed rows as read-only for `PUT`/`DELETE`; return `409` with clear `{ code, message, details }` to avoid import-refresh overwrite/resurrection confusion.
+- Source-managed rows are editable/deletable via `PUT`/`DELETE` like any other row. If refresh/import overwrites local edits, that’s an accepted trade-off for this API.
 - Treat security as required even for public APIs: protect write routes with API key auth, validate input, enforce least privilege.
 - Write auth contract: `X-API-Key`; missing/invalid key returns `401` with `{ code, message, details }`.
 - For QA reviews, apply `agents/qa.mdc` (function-level tests, endpoint path coverage, contract/regression validation).

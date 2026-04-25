@@ -39,6 +39,12 @@ def list_housing_units(session: Session, filters: HousingUnitFilters) -> list[Ho
     return repo.list_with_filters(session, filters)
 
 
+def count_housing_units(session: Session, filters: HousingUnitFilters) -> int:
+    """Return the total count of housing units matching the provided filters."""
+    logger.info("count_housing_units", extra={"filters": str(filters)})
+    return repo.count_with_filters(session, filters)
+
+
 def create_housing_unit(session: Session, data: dict[str, Any]) -> HousingUnit:
     """Create a new housing unit. Returns the created unit with its assigned id."""
     logger.info("create_housing_unit")

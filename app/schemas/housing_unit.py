@@ -102,6 +102,11 @@ class HousingUnitListResponse(BaseModel):
     """Response schema for GET /housing-units."""
 
     items: list[HousingUnitResponse]
-    total: int
+    total: int = Field(
+        ...,
+        description=(
+            "Total number of records matching the provided filters (ignores limit/offset)."
+        ),
+    )
     limit: int
     offset: int

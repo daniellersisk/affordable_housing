@@ -66,8 +66,8 @@ HTTP request
 - Normalize source fields at write-time before persistence.
 - Map source `total_units` to internal/API `num_units`.
 - Use internal DB `id` as API identity; keep source identity in (`project_id`, `building_id`) with composite uniqueness.
-- Treat source-managed rows (with source identity present) as read-only for `PUT`/`DELETE`; return `409` with a clear message.
-- Rationale: imported records are synchronized from the upstream source, so blocking edits/deletes avoids surprising overwrite/resurrection behavior during refresh.
+- Source-managed rows (with source identity present) are **not** treated as read-only — they can be edited and deleted via `PUT`/`DELETE` like any other row.
+- Rationale: most rows are source-managed, and blocking writes would make `PUT`/`DELETE` largely unusable; if recurring imports/refresh are used, callers should expect upstream sync to overwrite local edits.
 
 ## Logging and Error Handling Standards
 
@@ -110,8 +110,6 @@ Even if read endpoints are public, roles and security are still required:
 - Write-route auth contract:
   - header: `X-API-Key`
   - missing/invalid key: `401` with `{ code, message, details }`
-- Source-managed row contract:
-  - `PUT`/`DELETE` on source-managed rows return `409` with `{ code, message, details }`
 - Minimum role model:
   - `viewer` -> read-only
   - `editor` -> create/update

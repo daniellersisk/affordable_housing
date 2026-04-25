@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.core.constants import Borough, GeoShape, SortField, SortOrder
 
@@ -72,8 +73,9 @@ class HousingUnitFilters(BaseModel):
         provided_geo = [f for f in geo_params if getattr(self, f) is not None]
 
         if provided_geo and self.geo_shape is None:
-            raise ValueError(
-                "geo_shape is required when any geo param is provided|INVALID_GEO_FILTER"
+            raise PydanticCustomError(
+                "invalid_geo_filter",
+                "geo_shape is required when any geo param is provided",
             )
 
         if self.geo_shape == GeoShape.RECTANGLE:
@@ -82,8 +84,9 @@ class HousingUnitFilters(BaseModel):
                 if getattr(self, f) is None
             ]
             if missing:
-                raise ValueError(
-                    f"rectangle requires: {', '.join(missing)}|INVALID_GEO_FILTER"
+                raise PydanticCustomError(
+                    "invalid_geo_filter",
+                    f"rectangle requires: {', '.join(missing)}",
                 )
 
         if self.geo_shape == GeoShape.CIRCLE:
@@ -92,8 +95,9 @@ class HousingUnitFilters(BaseModel):
                 if getattr(self, f) is None
             ]
             if missing:
-                raise ValueError(
-                    f"circle requires: {', '.join(missing)}|INVALID_GEO_FILTER"
+                raise PydanticCustomError(
+                    "invalid_geo_filter",
+                    f"circle requires: {', '.join(missing)}",
                 )
 
         return self

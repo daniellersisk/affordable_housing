@@ -16,6 +16,9 @@ def test_get_housing_units_success_contract(client: TestClient) -> None:
     assert "limit" in data
     assert "offset" in data
     assert isinstance(data["items"], list)
+    # total is the full matching count (not just current page length)
+    assert isinstance(data["total"], int)
+    assert data["total"] >= len(data["items"])
 
 
 @pytest.mark.contract
@@ -26,6 +29,7 @@ def test_get_housing_units_pagination_contract(client: TestClient) -> None:
     data = response.json()
     assert data["limit"] == 5
     assert data["offset"] == 0
+    assert data["total"] >= len(data["items"])
 
 
 @pytest.mark.contract

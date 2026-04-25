@@ -93,32 +93,31 @@ def main(dry_run: bool = False) -> None:
 
 def _run_dry(client: SocrataClient) -> None:
     """Fetch first page only, log field mapping and sample records — no DB writes."""
-    print("=== DRY RUN — no data will be written to the database ===")
-    print(f"Socrata URL: {settings.resolved_open_data_url}")
-    print(f"Page size  : {settings.ingest_page_size}")
-    print(f"App token  : {'set' if settings.soda_app_token else 'NOT SET (rate limits apply)'}")
-    print()
+    logger.info(
+        "dry run started",
+        extra={
+            "url": settings.resolved_open_data_url,
+            "page_size": settings.ingest_page_size,
+            "app_token_set": bool(settings.soda_app_token),
+        },
+    )
 
     try:
         page = client._fetch_page(0, settings.ingest_page_size)
     except Exception as exc:
-        print(f"ERROR: could not fetch from Socrata — {exc}")
+        logger.error("dry run fetch failed", extra={"error": str(exc)})
         sys.exit(1)
 
     if not page:
-        print("Socrata returned 0 records. Check the dataset ID and URL.")
+        logger.info("dry run received 0 records")
         sys.exit(0)
 
-    print(f"First page returned {len(page)} records.")
-    print()
+    logger.info("dry run fetched first page", extra={"records": len(page)})
 
     first = page[0]
-    print("--- Raw source fields (first record) ---")
     for key, value in sorted(first.items()):
-        print(f"  {key}: {value!r}")
+        logger.info("dry run raw source field", extra={"field": key, "value": repr(value)})
 
-    print()
-    print("--- Field mapping applied at write time ---")
     mapping = {
         "total_units": "num_units (int cast)",
         "reporting_construction_type": "construction_type",
@@ -126,22 +125,26 @@ def _run_dry(client: SocrataClient) -> None:
     }
     for src, dst in mapping.items():
         present = "✓ present" if src in first else "— not in this record"
-        print(f"  {src} → {dst}  [{present}]")
-
-    print()
-    print(f"--- Sample records (first {_DRY_RUN_PREVIEW_COUNT}) ---")
-    for i, rec in enumerate(page[:_DRY_RUN_PREVIEW_COUNT], 1):
-        print(
-            f"  [{i}] socrata_row_id={rec.get(':id')!r}"
-            f"  project_id={rec.get('project_id')!r}"
-            f"  building_id={rec.get('building_id')!r}"
-            f"  total_units={rec.get('total_units')!r}"
-            f"  borough={rec.get('borough')!r}"
-            f"  street_name={rec.get('street_name')!r}"
+        logger.info(
+            "dry run field mapping",
+            extra={"source_field": src, "mapped_to": dst, "present": present},
         )
 
-    print()
-    print("=== Dry run complete — re-run without --dry-run to import ===")
+    for i, rec in enumerate(page[:_DRY_RUN_PREVIEW_COUNT], 1):
+        logger.info(
+            "dry run sample record",
+            extra={
+                "i": i,
+                "socrata_row_id": rec.get(":id"),
+                "project_id": rec.get("project_id"),
+                "building_id": rec.get("building_id"),
+                "total_units": rec.get("total_units"),
+                "borough": rec.get("borough"),
+                "street_name": rec.get("street_name"),
+            },
+        )
+
+    logger.info("dry run complete")
 
 
 if __name__ == "__main__":

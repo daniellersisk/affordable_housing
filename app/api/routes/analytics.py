@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
 from app.core.logging import get_logger
-from app.repositories import analytics_repository as repo
+from app.services import analytics_service as service
 
 logger = get_logger(__name__)
 
@@ -49,7 +49,7 @@ def get_summary(
     endpoint to avoid a full-table scan on every request.
     """
     logger.info("GET /v1/analytics/summary", extra={"top_n": top_n})
-    summary = repo.get_summary(session, top_construction_types=top_n)
+    summary = service.get_summary(session, top_construction_types=top_n)
     return AnalyticsSummaryResponse(
         total_units=summary.total_units,
         total_records=summary.total_records,
