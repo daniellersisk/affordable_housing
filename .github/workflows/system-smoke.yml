@@ -1,0 +1,37 @@
+name: System smoke (docker compose)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create .env from example
+        run: cp .env.example .env
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start stack (db + migrate + api)
+        run: docker compose up -d db migrate api
+
+      - name: Wait for API /health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS "http://localhost:8000/health" >/dev/null; then
+              echo "healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy"
+          docker compose logs api || true
+          exit 1
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

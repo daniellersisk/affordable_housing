@@ -4,6 +4,8 @@ import pytest
 
 from app.settings import Settings, _get_bool, _get_int, load_settings
 
+pytestmark = pytest.mark.unit
+
 
 def test_get_bool_uses_default_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("FEATURE_FLAG", raising=False)

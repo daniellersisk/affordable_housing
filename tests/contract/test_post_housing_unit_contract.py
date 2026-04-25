@@ -22,6 +22,7 @@ def test_post_housing_unit_success_contract(client: TestClient, auth_headers: di
         assert field in data
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_post_housing_unit_auth_error_contract(client: TestClient) -> None:
     """401 with structured error schema when no auth header provided."""
@@ -33,6 +34,7 @@ def test_post_housing_unit_auth_error_contract(client: TestClient) -> None:
     assert "details" in detail
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_post_housing_unit_wrong_key_returns_401(client: TestClient) -> None:
     """401 when wrong api key is provided."""
@@ -44,6 +46,7 @@ def test_post_housing_unit_wrong_key_returns_401(client: TestClient) -> None:
     assert response.status_code == 401
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_post_housing_unit_validation_error_contract(
     client: TestClient, auth_headers: dict
@@ -55,3 +58,38 @@ def test_post_housing_unit_validation_error_contract(
         headers=auth_headers,
     )
     assert response.status_code == 422
+
+
+@pytest.mark.negative
+@pytest.mark.contract
+def test_post_housing_unit_conflict_duplicate_source_identity_contract(
+    client: TestClient, auth_headers: dict
+) -> None:
+    """409 with structured error when project_id + building_id conflicts."""
+    first = client.post(
+        "/v1/housing-units",
+        json={
+            "num_units": 10,
+            "project_id": "P-CONFLICT",
+            "building_id": "B-CONFLICT",
+            "street_name": "One",
+        },
+        headers=auth_headers,
+    )
+    assert first.status_code == 201
+
+    second = client.post(
+        "/v1/housing-units",
+        json={
+            "num_units": 20,
+            "project_id": "P-CONFLICT",
+            "building_id": "B-CONFLICT",
+            "street_name": "Two",
+        },
+        headers=auth_headers,
+    )
+    assert second.status_code == 409
+    detail = second.json()["detail"]
+    assert detail["code"] == "CONFLICT"
+    assert "message" in detail
+    assert "details" in detail

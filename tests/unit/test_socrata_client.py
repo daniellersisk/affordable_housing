@@ -13,6 +13,8 @@ import pytest
 from app.clients.socrata_client import SocrataClient, _escape_soql
 from app.settings import Settings
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

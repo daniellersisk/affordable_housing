@@ -66,7 +66,11 @@ def list_housing_units(
     postcode: str | None = Query(default=None),
     construction_type: str | None = Query(default=None),
     num_units_min: int | None = Query(default=None, ge=1),
-    num_units_max: int | None = Query(default=None, ge=0),
+    num_units_max: int | None = Query(
+        default=None,
+        ge=1,
+        description="maximum number of units (minimum 1 when provided)",
+    ),
     geo_shape: GeoShape | None = Query(default=None),
     min_lat: float | None = Query(default=None),
     max_lat: float | None = Query(default=None),

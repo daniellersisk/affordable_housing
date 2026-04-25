@@ -6,6 +6,8 @@ import pytest
 
 from app.db.session import get_db
 
+pytestmark = pytest.mark.unit
+
 
 def test_get_db_yields_session() -> None:
     mock_session = MagicMock()

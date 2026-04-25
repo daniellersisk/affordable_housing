@@ -1108,6 +1108,19 @@ docker compose run --rm api pytest tests/e2e -q
 docker compose run --rm api pytest tests/contract -q
 ```
 
+Marker shortcuts:
+
+```bash
+docker compose run --rm api pytest -q -m unit
+docker compose run --rm api pytest -q -m contract
+docker compose run --rm api pytest -q -m e2e
+```
+
+Notes:
+
+- `-m unit` only runs tests explicitly marked `unit` (all files under `tests/unit/` are marked).
+- You can always run suites by directory (e.g. `pytest tests/unit -q`) if you prefer.
+
 Current scaffolding status:
 
 - `tests/unit/` contains active settings tests

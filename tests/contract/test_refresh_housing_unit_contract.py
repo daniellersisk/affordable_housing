@@ -61,6 +61,7 @@ def test_refresh_returns_401_without_auth(client: TestClient) -> None:
     assert "details" in detail
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_refresh_returns_401_with_invalid_auth(client: TestClient) -> None:
     """Invalid X-API-Key returns 401 with structured error."""
@@ -78,6 +79,7 @@ def test_refresh_returns_401_with_invalid_auth(client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_refresh_returns_404_for_unknown_id(client: TestClient, auth_headers: dict) -> None:
     """Refreshing a non-existent unit returns 404 with NOT_FOUND code."""
@@ -94,6 +96,7 @@ def test_refresh_returns_404_for_unknown_id(client: TestClient, auth_headers: di
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_refresh_returns_422_for_manually_created_unit(
     client: TestClient, auth_headers: dict
@@ -170,6 +173,7 @@ def test_refresh_sets_last_synced_from_socrata(client: TestClient, auth_headers:
     assert response.json()["last_synced_from_socrata"] is not None
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_refresh_returns_404_when_socrata_has_no_record(
     client: TestClient, auth_headers: dict

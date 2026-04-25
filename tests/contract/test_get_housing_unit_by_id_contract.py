@@ -26,6 +26,7 @@ def test_get_housing_unit_by_id_success_contract(client: TestClient, auth_header
         assert field in data
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_get_housing_unit_by_id_not_found_contract(client: TestClient) -> None:
     """404 with structured error schema for missing id."""

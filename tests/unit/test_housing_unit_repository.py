@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from app.repositories.housing_unit_repository import (
     _METERS_PER_DEGREE_LAT,
     _has_complete_source_identity,
@@ -9,6 +11,8 @@ from app.repositories.housing_unit_repository import (
     _normalize_source_record,
     upsert_from_source,
 )
+
+pytestmark = pytest.mark.unit
 
 
 def test_normalize_source_record_maps_total_units() -> None:

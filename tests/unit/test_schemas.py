@@ -9,6 +9,8 @@ from app.core.constants import GeoShape
 from app.schemas.filters import HousingUnitFilters
 from app.schemas.housing_unit import HousingUnitCreate, HousingUnitUpdate
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # HousingUnitFilters — geo validation
 # ---------------------------------------------------------------------------
@@ -70,23 +72,31 @@ def test_filters_circle_missing_radius_raises() -> None:
     assert errors[0]["type"] == "invalid_geo_filter"
 
 
-def test_filters_rectangle_with_extra_circle_params_is_valid() -> None:
-    """extra circle params alongside a valid rectangle shape are allowed.
+def test_filters_rectangle_with_extra_circle_params_raises() -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        HousingUnitFilters(
+            geo_shape=GeoShape.RECTANGLE,
+            min_lat=Decimal("40.6"),
+            max_lat=Decimal("40.8"),
+            min_lon=Decimal("-74.1"),
+            max_lon=Decimal("-73.9"),
+            center_lat=Decimal("40.7"),
+        )
+    errors = exc_info.value.errors()
+    assert errors[0]["type"] == "invalid_geo_filter"
 
-    geo_shape is the discriminator — it determines which params are used.
-    extra params for the non-selected shape are stored but ignored at query time.
-    """
-    f = HousingUnitFilters(
-        geo_shape=GeoShape.RECTANGLE,
-        min_lat=Decimal("40.6"),
-        max_lat=Decimal("40.8"),
-        min_lon=Decimal("-74.1"),
-        max_lon=Decimal("-73.9"),
-        center_lat=Decimal("40.7"),
-        center_lon=Decimal("-74.0"),
-        radius_m=500.0,
-    )
-    assert f.geo_shape == GeoShape.RECTANGLE
+
+def test_filters_circle_with_extra_rectangle_params_raises() -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        HousingUnitFilters(
+            geo_shape=GeoShape.CIRCLE,
+            center_lat=Decimal("40.7128"),
+            center_lon=Decimal("-74.0060"),
+            radius_m=500.0,
+            min_lat=Decimal("40.6"),
+        )
+    errors = exc_info.value.errors()
+    assert errors[0]["type"] == "invalid_geo_filter"
 
 
 def test_filters_pagination_defaults() -> None:

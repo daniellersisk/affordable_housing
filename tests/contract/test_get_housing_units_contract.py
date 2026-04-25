@@ -32,6 +32,7 @@ def test_get_housing_units_pagination_contract(client: TestClient) -> None:
     assert data["total"] >= len(data["items"])
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_get_housing_units_geo_params_without_shape_returns_422(client: TestClient) -> None:
     """geo params without geo_shape return 422 with INVALID_GEO_FILTER code."""
@@ -42,6 +43,7 @@ def test_get_housing_units_geo_params_without_shape_returns_422(client: TestClie
     assert "message" in detail
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_get_housing_units_rectangle_missing_params_returns_422(client: TestClient) -> None:
     """rectangle shape with missing params returns 422."""
@@ -49,6 +51,44 @@ def test_get_housing_units_rectangle_missing_params_returns_422(client: TestClie
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert detail["code"] == "INVALID_GEO_FILTER"
+
+
+@pytest.mark.negative
+@pytest.mark.contract
+def test_get_housing_units_num_units_min_greater_than_max_returns_422(client: TestClient) -> None:
+    """num_units_min > num_units_max returns 422 with structured error."""
+    response = client.get("/v1/housing-units?num_units_min=10&num_units_max=1")
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "VALIDATION_ERROR"
+    assert "message" in detail
+
+
+@pytest.mark.negative
+@pytest.mark.contract
+def test_get_housing_units_mixed_geo_params_returns_422(client: TestClient) -> None:
+    """Mixing circle + rectangle params should return 422 INVALID_GEO_FILTER."""
+    response = client.get(
+        "/v1/housing-units"
+        "?geo_shape=circle"
+        "&center_lat=40.7&center_lon=-74.0&radius_m=100"
+        "&min_lat=40.6"
+    )
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "INVALID_GEO_FILTER"
+
+
+@pytest.mark.negative
+@pytest.mark.contract
+def test_get_housing_units_invalid_sort_by_returns_422(client: TestClient) -> None:
+    """Invalid enum values should return 422 with structured error."""
+    response = client.get("/v1/housing-units?sort_by=not-a-field")
+    assert response.status_code == 422
+    # Query param enum validation happens before our handler runs, so this is the
+    # default FastAPI/Pydantic error shape (list of error objects).
+    detail = response.json()["detail"]
+    assert isinstance(detail, list)
 
 
 @pytest.mark.contract

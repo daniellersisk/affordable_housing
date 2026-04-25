@@ -8,6 +8,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.repositories import analytics_repository as repo
 
+pytestmark = pytest.mark.unit
+
 
 class _ResultOne:
     def __init__(self, row: tuple[object, object]) -> None:

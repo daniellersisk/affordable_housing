@@ -8,6 +8,8 @@ from app.core.errors import NotFoundError
 from app.schemas.filters import HousingUnitFilters
 from app.services import housing_unit_service as service
 
+pytestmark = pytest.mark.unit
+
 # all tests mock the repository so no DB is needed — service layer is pure python.
 MODULE = "app.services.housing_unit_service.repo"
 SOCRATA_MODULE = "app.services.housing_unit_service.socrata_client"

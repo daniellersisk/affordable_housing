@@ -25,7 +25,7 @@ class HousingUnitFilters(BaseModel):
     postcode: str | None = None
     construction_type: str | None = None
     num_units_min: int | None = Field(default=None, ge=1)
-    num_units_max: int | None = Field(default=None, ge=0)
+    num_units_max: int | None = Field(default=None, ge=1)
 
     geo_shape: GeoShape | None = None
 
@@ -66,10 +66,9 @@ class HousingUnitFilters(BaseModel):
 
     @model_validator(mode="after")
     def validate_geo(self) -> HousingUnitFilters:
-        geo_params = {
-            "min_lat", "max_lat", "min_lon", "max_lon",
-            "center_lat", "center_lon", "radius_m",
-        }
+        rectangle_params = {"min_lat", "max_lat", "min_lon", "max_lon"}
+        circle_params = {"center_lat", "center_lon", "radius_m"}
+        geo_params = rectangle_params | circle_params
         provided_geo = [f for f in geo_params if getattr(self, f) is not None]
 
         if provided_geo and self.geo_shape is None:
@@ -79,6 +78,12 @@ class HousingUnitFilters(BaseModel):
             )
 
         if self.geo_shape == GeoShape.RECTANGLE:
+            extra = [f for f in circle_params if getattr(self, f) is not None]
+            if extra:
+                raise PydanticCustomError(
+                    "invalid_geo_filter",
+                    f"rectangle does not allow circle params: {', '.join(sorted(extra))}",
+                )
             missing = [
                 f for f in ("min_lat", "max_lat", "min_lon", "max_lon")
                 if getattr(self, f) is None
@@ -90,6 +95,12 @@ class HousingUnitFilters(BaseModel):
                 )
 
         if self.geo_shape == GeoShape.CIRCLE:
+            extra = [f for f in rectangle_params if getattr(self, f) is not None]
+            if extra:
+                raise PydanticCustomError(
+                    "invalid_geo_filter",
+                    f"circle does not allow rectangle params: {', '.join(sorted(extra))}",
+                )
             missing = [
                 f for f in ("center_lat", "center_lon", "radius_m")
                 if getattr(self, f) is None

@@ -21,6 +21,7 @@ def test_delete_housing_unit_success_contract(client: TestClient, auth_headers: 
     assert response.content == b""
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_delete_housing_unit_auth_error_contract(client: TestClient) -> None:
     """401 with structured error when no auth header provided."""
@@ -32,6 +33,20 @@ def test_delete_housing_unit_auth_error_contract(client: TestClient) -> None:
     assert "details" in detail
 
 
+@pytest.mark.negative
+@pytest.mark.contract
+def test_delete_housing_unit_wrong_key_returns_401(client: TestClient) -> None:
+    """401 when wrong api key is provided."""
+    response = client.delete(
+        "/v1/housing-units/1",
+        headers={"X-API-Key": "wrong-key"},
+    )
+    assert response.status_code == 401
+    detail = response.json()["detail"]
+    assert detail["code"] == "UNAUTHORIZED"
+
+
+@pytest.mark.negative
 @pytest.mark.contract
 def test_delete_housing_unit_not_found_contract(client: TestClient, auth_headers: dict) -> None:
     """404 with structured error for missing id."""

@@ -17,6 +17,7 @@ def test_list_sort_by_num_units_desc_contract(client: TestClient, auth_headers: 
         assert items[0]["num_units"] >= items[1]["num_units"]
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_list_invalid_sort_field_returns_422(client: TestClient) -> None:
     """invalid sort_by value returns 422."""
@@ -24,6 +25,7 @@ def test_list_invalid_sort_field_returns_422(client: TestClient) -> None:
     assert response.status_code == 422
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_nearby_no_coordinates_returns_404(client: TestClient, auth_headers: dict) -> None:
     """nearby returns 404 when unit has no coordinates."""
@@ -42,6 +44,7 @@ def test_nearby_no_coordinates_returns_404(client: TestClient, auth_headers: dic
     assert "no coordinates" in detail["message"] or "nearby" in detail["message"]
 
 
+@pytest.mark.negative
 @pytest.mark.contract
 def test_nearby_missing_radius_returns_422(client: TestClient) -> None:
     """nearby without radius_m returns 422."""
