@@ -65,6 +65,19 @@ class HousingUnitFilters(BaseModel):
         return v
 
     @model_validator(mode="after")
+    def validate_num_units_range(self) -> HousingUnitFilters:
+        if (
+            self.num_units_min is not None
+            and self.num_units_max is not None
+            and self.num_units_min > self.num_units_max
+        ):
+            raise PydanticCustomError(
+                "invalid_num_units_range",
+                "num_units_min must be less than or equal to num_units_max",
+            )
+        return self
+
+    @model_validator(mode="after")
     def validate_geo(self) -> HousingUnitFilters:
         rectangle_params = {"min_lat", "max_lat", "min_lon", "max_lon"}
         circle_params = {"center_lat", "center_lon", "radius_m"}

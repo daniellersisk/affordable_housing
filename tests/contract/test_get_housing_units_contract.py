@@ -85,10 +85,11 @@ def test_get_housing_units_invalid_sort_by_returns_422(client: TestClient) -> No
     """Invalid enum values should return 422 with structured error."""
     response = client.get("/v1/housing-units?sort_by=not-a-field")
     assert response.status_code == 422
-    # Query param enum validation happens before our handler runs, so this is the
-    # default FastAPI/Pydantic error shape (list of error objects).
     detail = response.json()["detail"]
-    assert isinstance(detail, list)
+    assert detail["code"] == "VALIDATION_ERROR"
+    assert "message" in detail
+    # Global RequestValidationError handler includes field info when available.
+    assert any(d.get("field") == "sort_by" for d in detail.get("details", []))
 
 
 @pytest.mark.contract
