@@ -94,6 +94,8 @@ def test_load_settings_does_not_use_legacy_open_data_url_override(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("NYC_OPEN_DATA_V1_URL", raising=False)
+    monkeypatch.delenv("NYC_OPEN_DATA_V1_BASE_URL", raising=False)
+    monkeypatch.delenv("NYC_OPEN_DATA_V1_VIEW_ID", raising=False)
     monkeypatch.setenv("NYC_OPEN_DATA_URL", "https://legacy.example/override")
     monkeypatch.setenv("NYC_OPEN_DATA_BASE_URL", "https://legacy.example")
     monkeypatch.setenv("NYC_OPEN_DATA_VIEW_ID", "zzzz-9999")
