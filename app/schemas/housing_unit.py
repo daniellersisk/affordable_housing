@@ -81,7 +81,28 @@ class HousingUnitUpdate(BaseModel):
 class HousingUnitResponse(BaseModel):
     """Response schema for a single housing unit."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 799523655,
+                    "project_id": "PROJ-1",
+                    "building_id": "BLD-1",
+                    "street_name": "Broadway",
+                    "borough": "MANHATTAN",
+                    "postcode": "10001",
+                    "construction_type": "NEW CONSTRUCTION",
+                    "num_units": 42,
+                    "latitude": "40.712800",
+                    "longitude": "-74.006000",
+                    "created_at": "2026-04-26T20:06:30.114Z",
+                    "updated_at": "2026-04-26T20:06:30.114Z",
+                    "last_synced_from_socrata": "2026-04-26T20:06:30.114Z",
+                }
+            ]
+        },
+    )
 
     id: int
     project_id: str | None
@@ -110,3 +131,32 @@ class HousingUnitListResponse(BaseModel):
     )
     limit: int
     offset: int
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "items": [
+                        {
+                            "id": 1,
+                            "project_id": None,
+                            "building_id": None,
+                            "street_name": "Lifecycle Ave",
+                            "borough": "QUEENS",
+                            "postcode": None,
+                            "construction_type": None,
+                            "num_units": 20,
+                            "latitude": None,
+                            "longitude": None,
+                            "created_at": "2026-04-26T20:06:30.114Z",
+                            "updated_at": "2026-04-26T20:06:30.114Z",
+                            "last_synced_from_socrata": None,
+                        }
+                    ],
+                    "total": 1,
+                    "limit": 100,
+                    "offset": 0,
+                }
+            ]
+        }
+    )

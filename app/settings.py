@@ -53,16 +53,19 @@ class Settings:
 
     # Ingestion config (non-secret + secret token)
     nyc_open_data_url: str = field(
-        default_factory=lambda: _get_str("NYC_OPEN_DATA_URL", "")
+        default_factory=lambda: _get_str("NYC_OPEN_DATA_V1_URL", "")
     )
     nyc_open_data_base_url: str = field(
         default_factory=lambda: _get_str(
-            "NYC_OPEN_DATA_BASE_URL",
-            "https://data.cityofnewyork.us",
+            "NYC_OPEN_DATA_V1_BASE_URL",
+            _get_str("NYC_OPEN_DATA_BASE_URL", "https://data.cityofnewyork.us"),
         )
     )
     nyc_open_data_view_id: str = field(
-        default_factory=lambda: _get_str("NYC_OPEN_DATA_VIEW_ID", "hg8x-zxpr")
+        default_factory=lambda: _get_str(
+            "NYC_OPEN_DATA_V1_VIEW_ID",
+            _get_str("NYC_OPEN_DATA_VIEW_ID", "hg8x-zxpr"),
+        )
     )
     soda_app_token: str = field(default_factory=lambda: _get_str("SODA_APP_TOKEN", ""))
     ingest_page_size: int = field(

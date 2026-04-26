@@ -59,13 +59,15 @@ make up
 If you are reviewing this repository and were given a **short-lived, repo-scoped, read-only** GitHub fine-grained personal access token (PAT), you can clone the private repo using:
 
 ```bash
-git clone https://daniellesisk:<TOKEN>@github.com/daniellesisk/affordable_housing.git
+export TOKEN="<YOUR_GITHUB_PAT>"
+git clone "https://daniellesisk:${TOKEN}@github.com/daniellersisk/affordable_housing.git"
 ```
 
 Notes:
 
 - Do not share the token in screenshots, logs, or shell history.
 - The token should expire automatically; it may also be revoked at any time after review.
+- Ensure there are no spaces in the token value (GitHub fine-grained PATs typically start with `github_pat_...`).
 
 Then open:
 
@@ -311,9 +313,9 @@ A full sync-with-delete would require fetching all source `(project_id, building
 
 Recommended ingestion settings:
 
-- `NYC_OPEN_DATA_URL`
-- `NYC_OPEN_DATA_BASE_URL`
-- `NYC_OPEN_DATA_VIEW_ID`
+- `NYC_OPEN_DATA_V1_URL`
+- `NYC_OPEN_DATA_V1_BASE_URL`
+- `NYC_OPEN_DATA_V1_VIEW_ID`
 - `SODA_APP_TOKEN`
 - `INGEST_PAGE_SIZE`
 - `INGEST_TIMEOUT_SECONDS`
@@ -980,9 +982,9 @@ Core variables:
 - `POSTGRES_DB`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
-- `NYC_OPEN_DATA_URL`
-- `NYC_OPEN_DATA_BASE_URL`
-- `NYC_OPEN_DATA_VIEW_ID`
+- `NYC_OPEN_DATA_V1_URL`
+- `NYC_OPEN_DATA_V1_BASE_URL`
+- `NYC_OPEN_DATA_V1_VIEW_ID`
 - `SODA_APP_TOKEN`
 - `INGEST_PAGE_SIZE`
 - `INGEST_TIMEOUT_SECONDS`

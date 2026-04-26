@@ -59,9 +59,9 @@ def test_get_int_raises_for_invalid_values(monkeypatch: pytest.MonkeyPatch) -> N
 def test_load_settings_uses_explicit_open_data_url(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("NYC_OPEN_DATA_URL", "https://example.com/custom")
-    monkeypatch.setenv("NYC_OPEN_DATA_BASE_URL", "https://base.example")
-    monkeypatch.setenv("NYC_OPEN_DATA_VIEW_ID", "abcd-1234")
+    monkeypatch.setenv("NYC_OPEN_DATA_V1_URL", "https://example.com/custom")
+    monkeypatch.setenv("NYC_OPEN_DATA_V1_BASE_URL", "https://base.example")
+    monkeypatch.setenv("NYC_OPEN_DATA_V1_VIEW_ID", "abcd-1234")
 
     loaded = load_settings()
 
@@ -72,9 +72,9 @@ def test_load_settings_uses_explicit_open_data_url(
 def test_load_settings_builds_open_data_url_from_base_and_view_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("NYC_OPEN_DATA_URL", "")
-    monkeypatch.setenv("NYC_OPEN_DATA_BASE_URL", "https://data.cityofnewyork.us")
-    monkeypatch.setenv("NYC_OPEN_DATA_VIEW_ID", "hg8x-zxpr")
+    monkeypatch.setenv("NYC_OPEN_DATA_V1_URL", "")
+    monkeypatch.setenv("NYC_OPEN_DATA_V1_BASE_URL", "https://data.cityofnewyork.us")
+    monkeypatch.setenv("NYC_OPEN_DATA_V1_VIEW_ID", "hg8x-zxpr")
 
     loaded = load_settings()
 
@@ -82,6 +82,32 @@ def test_load_settings_builds_open_data_url_from_base_and_view_id(
         loaded.resolved_open_data_url
         == "https://data.cityofnewyork.us/resource/hg8x-zxpr.json"
     )
+
+
+def test_load_settings_supports_legacy_open_data_env_vars(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("NYC_OPEN_DATA_V1_URL", raising=False)
+    monkeypatch.delenv("NYC_OPEN_DATA_V1_BASE_URL", raising=False)
+    monkeypatch.delenv("NYC_OPEN_DATA_V1_VIEW_ID", raising=False)
+    monkeypatch.setenv("NYC_OPEN_DATA_BASE_URL", "https://legacy.example")
+    monkeypatch.setenv("NYC_OPEN_DATA_VIEW_ID", "zzzz-9999")
+
+    loaded = load_settings()
+    assert loaded.resolved_open_data_url == "https://legacy.example/resource/zzzz-9999.json"
+
+
+def test_load_settings_does_not_use_legacy_open_data_url_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("NYC_OPEN_DATA_V1_URL", raising=False)
+    monkeypatch.setenv("NYC_OPEN_DATA_URL", "https://legacy.example/override")
+    monkeypatch.setenv("NYC_OPEN_DATA_BASE_URL", "https://legacy.example")
+    monkeypatch.setenv("NYC_OPEN_DATA_VIEW_ID", "zzzz-9999")
+
+    loaded = load_settings()
+    assert loaded.nyc_open_data_url == ""
+    assert loaded.resolved_open_data_url == "https://legacy.example/resource/zzzz-9999.json"
 
 
 def test_load_settings_reads_environment_at_call_time(

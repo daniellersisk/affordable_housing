@@ -8,6 +8,7 @@ from app.api.dependencies import get_db, require_write_auth
 from app.core.constants import ErrorCode, GeoShape, SortField, SortOrder
 from app.core.errors import ConflictError, NotFoundError
 from app.core.logging import get_logger
+from app.schemas.error import ErrorResponse, example_error_response
 from app.schemas.filters import HousingUnitFilters
 from app.schemas.housing_unit import (
     HousingUnitCreate,
@@ -18,6 +19,121 @@ from app.schemas.housing_unit import (
 from app.services import housing_unit_service as service
 
 logger = get_logger(__name__)
+
+_RESPONSES_COMMON = {
+    422: {
+        "model": ErrorResponse,
+        "description": "Validation error (structured).",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "validation_error": {
+                        "summary": "Validation error",
+                        "value": example_error_response(
+                            code=ErrorCode.VALIDATION_ERROR,
+                            message="num_units_min must be less than or equal to num_units_max",
+                            details=[
+                                {
+                                    "field": "num_units_min",
+                                    "message": "num_units_min must be less than or equal to num_units_max",
+                                }
+                            ],
+                        ),
+                    }
+                }
+            }
+        },
+    }
+}
+
+_RESPONSES_AUTH = {
+    401: {
+        "model": ErrorResponse,
+        "description": "Unauthorized (missing/invalid X-API-Key).",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "unauthorized": {
+                        "summary": "Missing or invalid API key",
+                        "value": example_error_response(
+                            code=ErrorCode.UNAUTHORIZED,
+                            message="missing or invalid api key",
+                            details=[
+                                {
+                                    "field": "X-API-Key",
+                                    "message": "header is missing or incorrect",
+                                }
+                            ],
+                        ),
+                    }
+                }
+            }
+        },
+    }
+}
+
+_RESPONSES_NOT_FOUND = {
+    404: {
+        "model": ErrorResponse,
+        "description": "Not found.",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "not_found": {
+                        "summary": "Resource not found",
+                        "value": example_error_response(
+                            code=ErrorCode.NOT_FOUND,
+                            message="housing unit 123 not found",
+                            details=[],
+                        ),
+                    }
+                }
+            }
+        },
+    }
+}
+
+_RESPONSES_CONFLICT = {
+    409: {
+        "model": ErrorResponse,
+        "description": "Conflict (duplicate identity).",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "conflict": {
+                        "summary": "Duplicate source identity",
+                        "value": example_error_response(
+                            code=ErrorCode.CONFLICT,
+                            message="housing unit with project_id=P1 and building_id=B1 already exists",
+                            details=[],
+                        ),
+                    }
+                }
+            }
+        },
+    }
+}
+
+_RESPONSES_INVALID_GEO = {
+    422: {
+        "model": ErrorResponse,
+        "description": "Geo filter validation error (structured).",
+        "content": {
+            "application/json": {
+                "examples": {
+                    "invalid_geo_filter": {
+                        "summary": "Invalid geo filter",
+                        "value": example_error_response(
+                            code=ErrorCode.INVALID_GEO_FILTER,
+                            message="geo_shape is required when any geo param is provided",
+                            details=[],
+                        ),
+                    }
+                }
+            }
+        },
+    }
+}
 
 # public endpoints — no auth required, read-only
 public_router = APIRouter(
@@ -59,7 +175,11 @@ def _conflict(message: str) -> HTTPException:
 # ---------------------------------------------------------------------------
 
 
-@public_router.get("", response_model=HousingUnitListResponse)
+@public_router.get(
+    "",
+    response_model=HousingUnitListResponse,
+    responses={**_RESPONSES_COMMON, **_RESPONSES_INVALID_GEO},
+)
 def list_housing_units(
     street_name: str | None = Query(default=None),
     borough: str | None = Query(default=None),
@@ -131,7 +251,11 @@ def list_housing_units(
     )
 
 
-@public_router.get("/{unit_id}", response_model=HousingUnitResponse)
+@public_router.get(
+    "/{unit_id}",
+    response_model=HousingUnitResponse,
+    responses={**_RESPONSES_NOT_FOUND, **_RESPONSES_COMMON},
+)
 def get_housing_unit(
     unit_id: int,
     session: Session = Depends(get_db),
@@ -207,7 +331,12 @@ def get_nearby_housing_units(
 # ---------------------------------------------------------------------------
 
 
-@private_router.post("", response_model=HousingUnitResponse, status_code=status.HTTP_201_CREATED)
+@private_router.post(
+    "",
+    response_model=HousingUnitResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={**_RESPONSES_AUTH, **_RESPONSES_CONFLICT, **_RESPONSES_COMMON},
+)
 def create_housing_unit(
     body: HousingUnitCreate,
     session: Session = Depends(get_db),
@@ -223,7 +352,11 @@ def create_housing_unit(
     return HousingUnitResponse.model_validate(unit)
 
 
-@private_router.put("/{unit_id}", response_model=HousingUnitResponse)
+@private_router.put(
+    "/{unit_id}",
+    response_model=HousingUnitResponse,
+    responses={**_RESPONSES_AUTH, **_RESPONSES_NOT_FOUND, **_RESPONSES_CONFLICT, **_RESPONSES_COMMON},
+)
 def update_housing_unit(
     unit_id: int,
     body: HousingUnitUpdate,
@@ -244,7 +377,11 @@ def update_housing_unit(
     return HousingUnitResponse.model_validate(unit)
 
 
-@private_router.delete("/{unit_id}", status_code=status.HTTP_204_NO_CONTENT)
+@private_router.delete(
+    "/{unit_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**_RESPONSES_AUTH, **_RESPONSES_NOT_FOUND},
+)
 def delete_housing_unit(
     unit_id: int,
     session: Session = Depends(get_db),
@@ -259,7 +396,11 @@ def delete_housing_unit(
         raise _not_found(unit_id)
 
 
-@private_router.post("/{unit_id}/refresh", response_model=HousingUnitResponse)
+@private_router.post(
+    "/{unit_id}/refresh",
+    response_model=HousingUnitResponse,
+    responses={**_RESPONSES_AUTH, **_RESPONSES_NOT_FOUND, **_RESPONSES_COMMON},
+)
 def refresh_housing_unit(
     unit_id: int,
     session: Session = Depends(get_db),
