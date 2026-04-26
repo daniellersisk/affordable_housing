@@ -50,6 +50,20 @@ class Settings:
             "postgresql+psycopg://postgres:postgres@db:5432/affordable_housing",
         )
     )
+    db_pool_size: int = field(default_factory=lambda: _get_int("DB_POOL_SIZE", 5))
+    db_max_overflow: int = field(default_factory=lambda: _get_int("DB_MAX_OVERFLOW", 10))
+    db_pool_timeout_seconds: int = field(
+        default_factory=lambda: _get_int("DB_POOL_TIMEOUT_SECONDS", 30)
+    )
+    db_pool_recycle_seconds: int = field(
+        default_factory=lambda: _get_int("DB_POOL_RECYCLE_SECONDS", 1800)
+    )
+    db_connect_timeout_seconds: int = field(
+        default_factory=lambda: _get_int("DB_CONNECT_TIMEOUT_SECONDS", 5)
+    )
+    db_statement_timeout_ms: int = field(
+        default_factory=lambda: _get_int("DB_STATEMENT_TIMEOUT_MS", 15000)
+    )
 
     # Ingestion config (non-secret + secret token)
     nyc_open_data_url: str = field(

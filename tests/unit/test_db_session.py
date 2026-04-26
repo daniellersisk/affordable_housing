@@ -25,6 +25,7 @@ def test_get_db_closes_session_on_normal_exit() -> None:
         mock_session.close.assert_not_called()
         with pytest.raises(StopIteration):
             next(gen)
+        mock_session.rollback.assert_called()
         mock_session.close.assert_called_once()
 
 
@@ -35,4 +36,5 @@ def test_get_db_closes_session_on_exception() -> None:
         next(gen)
         with pytest.raises(RuntimeError):
             gen.throw(RuntimeError("db failure"))
+        mock_session.rollback.assert_called()
         mock_session.close.assert_called_once()

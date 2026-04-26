@@ -110,6 +110,25 @@ def test_load_settings_does_not_use_legacy_open_data_url_override(
     assert loaded.resolved_open_data_url == "https://legacy.example/resource/zzzz-9999.json"
 
 
+@pytest.mark.parametrize(
+    "var_name",
+    [
+        "DB_POOL_SIZE",
+        "DB_MAX_OVERFLOW",
+        "DB_POOL_TIMEOUT_SECONDS",
+        "DB_POOL_RECYCLE_SECONDS",
+        "DB_CONNECT_TIMEOUT_SECONDS",
+        "DB_STATEMENT_TIMEOUT_MS",
+    ],
+)
+def test_load_settings_raises_for_invalid_db_int_settings(
+    monkeypatch: pytest.MonkeyPatch, var_name: str
+) -> None:
+    monkeypatch.setenv(var_name, "not-an-int")
+    with pytest.raises(ValueError, match=f"Invalid integer for {var_name}"):
+        load_settings()
+
+
 def test_load_settings_reads_environment_at_call_time(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
