@@ -4,7 +4,7 @@
 .env:
 	cp .env.example .env
 
-.PHONY: up down clean build logs test lint import migrate
+.PHONY: up down clean build logs test lint fix format import migrate
 
 up: .env
 	docker compose up
@@ -26,6 +26,13 @@ test: .env
 
 lint: .env
 	docker compose run --rm --no-deps api ruff check .
+
+fix: .env
+	docker compose run --rm --no-deps api ruff check . --fix
+	docker compose run --rm --no-deps api ruff format .
+
+format: .env
+	$(MAKE) fix
 
 migrate: .env
 	docker compose run --rm api alembic upgrade head

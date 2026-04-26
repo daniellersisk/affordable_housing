@@ -66,9 +66,7 @@ class Settings:
     )
 
     # Ingestion config (non-secret + secret token)
-    nyc_open_data_url: str = field(
-        default_factory=lambda: _get_str("NYC_OPEN_DATA_V1_URL", "")
-    )
+    nyc_open_data_url: str = field(default_factory=lambda: _get_str("NYC_OPEN_DATA_V1_URL", ""))
     nyc_open_data_base_url: str = field(
         default_factory=lambda: _get_str(
             "NYC_OPEN_DATA_V1_BASE_URL",
@@ -82,20 +80,14 @@ class Settings:
         )
     )
     soda_app_token: str = field(default_factory=lambda: _get_str("SODA_APP_TOKEN", ""))
-    ingest_page_size: int = field(
-        default_factory=lambda: _get_int("INGEST_PAGE_SIZE", 2000)
-    )
+    ingest_page_size: int = field(default_factory=lambda: _get_int("INGEST_PAGE_SIZE", 2000))
     ingest_timeout_seconds: int = field(
         default_factory=lambda: _get_int("INGEST_TIMEOUT_SECONDS", 30)
     )
-    ingest_max_retries: int = field(
-        default_factory=lambda: _get_int("INGEST_MAX_RETRIES", 3)
-    )
+    ingest_max_retries: int = field(default_factory=lambda: _get_int("INGEST_MAX_RETRIES", 3))
 
     # API auth config (contains secret key)
-    api_auth_enabled: bool = field(
-        default_factory=lambda: _get_bool("API_AUTH_ENABLED", True)
-    )
+    api_auth_enabled: bool = field(default_factory=lambda: _get_bool("API_AUTH_ENABLED", True))
     write_api_key: str = field(default_factory=lambda: _get_str("WRITE_API_KEY", ""))
     write_api_key_header: str = field(
         default_factory=lambda: _get_str("WRITE_API_KEY_HEADER", "X-API-Key")
@@ -120,10 +112,7 @@ class Settings:
     def resolved_open_data_url(self) -> str:
         if self.nyc_open_data_url:
             return self.nyc_open_data_url
-        return (
-            f"{self.nyc_open_data_base_url}/resource/"
-            f"{self.nyc_open_data_view_id}.json"
-        )
+        return f"{self.nyc_open_data_base_url}/resource/{self.nyc_open_data_view_id}.json"
 
 
 def load_settings() -> Settings:

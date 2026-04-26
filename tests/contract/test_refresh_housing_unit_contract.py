@@ -3,6 +3,7 @@
 The Socrata client is mocked in all tests — no real HTTP calls to NYC Open Data.
 Tests verify: status codes, response schema, error schema, and auth contract.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -154,8 +155,15 @@ def test_refresh_response_schema(client: TestClient, auth_headers: dict) -> None
 
     assert response.status_code == 200
     data = response.json()
-    for field in ("id", "num_units", "project_id", "building_id", "created_at", "updated_at",
-                  "last_synced_from_socrata"):
+    for field in (
+        "id",
+        "num_units",
+        "project_id",
+        "building_id",
+        "created_at",
+        "updated_at",
+        "last_synced_from_socrata",
+    ):
         assert field in data, f"missing field: {field}"
 
 

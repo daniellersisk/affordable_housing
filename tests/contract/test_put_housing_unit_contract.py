@@ -1,4 +1,5 @@
 """Contract tests for PUT /housing-units/{id}."""
+
 from __future__ import annotations
 
 import pytest
@@ -73,9 +74,7 @@ def test_put_housing_unit_not_found_contract(client: TestClient, auth_headers: d
 
 @pytest.mark.negative
 @pytest.mark.contract
-def test_put_housing_unit_validation_error_contract(
-    client: TestClient, auth_headers: dict
-) -> None:
+def test_put_housing_unit_validation_error_contract(client: TestClient, auth_headers: dict) -> None:
     """422 when payload fails validation."""
     created = client.post(
         "/v1/housing-units",

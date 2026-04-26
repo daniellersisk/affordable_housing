@@ -81,9 +81,7 @@ def _get_units_by_borough(session: Session) -> list[BoroughSummary]:
     ]
 
 
-def _get_top_construction_types(
-    session: Session, limit: int
-) -> list[ConstructionTypeSummary]:
+def _get_top_construction_types(session: Session, limit: int) -> list[ConstructionTypeSummary]:
     stmt = (
         select(
             HousingUnit.construction_type,

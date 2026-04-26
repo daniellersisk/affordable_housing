@@ -6,6 +6,7 @@ In CI we run `pytest -m e2e` inside the API container without separately startin
 the `api` service, so this fixture starts a local uvicorn process for the
 duration of the test session and uses `httpx` to call it.
 """
+
 from __future__ import annotations
 
 import os

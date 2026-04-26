@@ -14,17 +14,13 @@ def test_get_bool_uses_default_when_missing(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 @pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on"])
-def test_get_bool_parses_true_values(
-    monkeypatch: pytest.MonkeyPatch, value: str
-) -> None:
+def test_get_bool_parses_true_values(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
     monkeypatch.setenv("FEATURE_FLAG", value)
     assert _get_bool("FEATURE_FLAG", default=False) is True
 
 
 @pytest.mark.parametrize("value", ["0", "false", "FALSE", "no", "off"])
-def test_get_bool_parses_false_values(
-    monkeypatch: pytest.MonkeyPatch, value: str
-) -> None:
+def test_get_bool_parses_false_values(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
     monkeypatch.setenv("FEATURE_FLAG", value)
     assert _get_bool("FEATURE_FLAG", default=True) is False
 
@@ -78,10 +74,7 @@ def test_load_settings_builds_open_data_url_from_base_and_view_id(
 
     loaded = load_settings()
 
-    assert (
-        loaded.resolved_open_data_url
-        == "https://data.cityofnewyork.us/resource/hg8x-zxpr.json"
-    )
+    assert loaded.resolved_open_data_url == "https://data.cityofnewyork.us/resource/hg8x-zxpr.json"
 
 
 def test_load_settings_supports_legacy_open_data_env_vars(

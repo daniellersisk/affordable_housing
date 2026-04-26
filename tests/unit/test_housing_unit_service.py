@@ -22,8 +22,14 @@ def _make_unit(**kwargs) -> MagicMock:
     SQLAlchemy session dependency — the service layer only reads id,
     project_id, and building_id from the returned objects.
     """
-    defaults = {"id": 1, "street_name": "Test St", "borough": "MANHATTAN", "num_units": 10,
-                "project_id": None, "building_id": None}
+    defaults = {
+        "id": 1,
+        "street_name": "Test St",
+        "borough": "MANHATTAN",
+        "num_units": 10,
+        "project_id": None,
+        "building_id": None,
+    }
     defaults.update(kwargs)
     unit = MagicMock()
     for key, value in defaults.items():
@@ -97,8 +103,10 @@ def test_update_housing_unit_returns_updated_unit() -> None:
     unit = _make_unit()
     updated = _make_unit(street_name="New St")
     session = MagicMock()
-    with patch(f"{MODULE}.get_by_id", return_value=unit), \
-         patch(f"{MODULE}.update", return_value=updated):
+    with (
+        patch(f"{MODULE}.get_by_id", return_value=unit),
+        patch(f"{MODULE}.update", return_value=updated),
+    ):
         result = service.update_housing_unit(session, 1, {"street_name": "New St"})
     assert result is updated
 
@@ -115,8 +123,10 @@ def test_update_housing_unit_allows_source_managed_rows() -> None:
     unit = _make_unit(project_id="P1", building_id="B1")
     updated = _make_unit(num_units=99)
     session = MagicMock()
-    with patch(f"{MODULE}.get_by_id", return_value=unit), \
-         patch(f"{MODULE}.update", return_value=updated):
+    with (
+        patch(f"{MODULE}.get_by_id", return_value=unit),
+        patch(f"{MODULE}.update", return_value=updated),
+    ):
         result = service.update_housing_unit(session, 1, {"num_units": 99})
     assert result is updated
 
@@ -129,8 +139,7 @@ def test_update_housing_unit_allows_source_managed_rows() -> None:
 def test_delete_housing_unit_calls_repo_delete() -> None:
     unit = _make_unit()
     session = MagicMock()
-    with patch(f"{MODULE}.get_by_id", return_value=unit), \
-         patch(f"{MODULE}.delete") as mock_delete:
+    with patch(f"{MODULE}.get_by_id", return_value=unit), patch(f"{MODULE}.delete") as mock_delete:
         service.delete_housing_unit(session, 1)
     mock_delete.assert_called_once_with(session, 1)
 
@@ -146,8 +155,7 @@ def test_delete_housing_unit_allows_source_managed_rows() -> None:
     """source-managed rows (project_id + building_id set) can be deleted freely."""
     unit = _make_unit(project_id="P1", building_id="B1")
     session = MagicMock()
-    with patch(f"{MODULE}.get_by_id", return_value=unit), \
-         patch(f"{MODULE}.delete") as mock_delete:
+    with patch(f"{MODULE}.get_by_id", return_value=unit), patch(f"{MODULE}.delete") as mock_delete:
         service.delete_housing_unit(session, 1)
     mock_delete.assert_called_once_with(session, 1)
 
@@ -164,9 +172,11 @@ def test_sync_from_source_returns_upserted_unit() -> None:
     session = MagicMock()
     mock_client = MagicMock()
     mock_client.get_by_source_id.return_value = raw_record
-    with patch(SOCRATA_MODULE, mock_client), \
-         patch(f"{MODULE}.upsert_from_source") as mock_upsert, \
-         patch(f"{MODULE}.get_by_source_identity", return_value=upserted_unit):
+    with (
+        patch(SOCRATA_MODULE, mock_client),
+        patch(f"{MODULE}.upsert_from_source") as mock_upsert,
+        patch(f"{MODULE}.get_by_source_identity", return_value=upserted_unit),
+    ):
         result = service.sync_from_source(session, "P1", "B1")
     assert result is upserted_unit
     mock_upsert.assert_called_once_with(session, [raw_record])
@@ -188,9 +198,11 @@ def test_sync_from_source_raises_not_found_when_post_upsert_lookup_fails() -> No
     session = MagicMock()
     mock_client = MagicMock()
     mock_client.get_by_source_id.return_value = raw_record
-    with patch(SOCRATA_MODULE, mock_client), \
-         patch(f"{MODULE}.upsert_from_source"), \
-         patch(f"{MODULE}.get_by_source_identity", return_value=None):
+    with (
+        patch(SOCRATA_MODULE, mock_client),
+        patch(f"{MODULE}.upsert_from_source"),
+        patch(f"{MODULE}.get_by_source_identity", return_value=None),
+    ):
         with pytest.raises(NotFoundError):
             service.sync_from_source(session, "P1", "B1")
 
@@ -202,8 +214,10 @@ def test_sync_from_source_passes_correct_ids_to_client() -> None:
     session = MagicMock()
     mock_client = MagicMock()
     mock_client.get_by_source_id.return_value = raw_record
-    with patch(SOCRATA_MODULE, mock_client), \
-         patch(f"{MODULE}.upsert_from_source"), \
-         patch(f"{MODULE}.get_by_source_identity", return_value=upserted_unit):
+    with (
+        patch(SOCRATA_MODULE, mock_client),
+        patch(f"{MODULE}.upsert_from_source"),
+        patch(f"{MODULE}.get_by_source_identity", return_value=upserted_unit),
+    ):
         service.sync_from_source(session, "PROJ-X", "BLD-Y")
     mock_client.get_by_source_id.assert_called_once_with("PROJ-X", "BLD-Y")

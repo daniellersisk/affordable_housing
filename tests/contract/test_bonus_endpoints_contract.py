@@ -1,4 +1,5 @@
 """Contract tests for bonus endpoints: sort, nearby, analytics summary."""
+
 from __future__ import annotations
 
 import pytest

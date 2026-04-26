@@ -98,8 +98,7 @@ class HousingUnitFilters(BaseModel):
                     f"rectangle does not allow circle params: {', '.join(sorted(extra))}",
                 )
             missing = [
-                f for f in ("min_lat", "max_lat", "min_lon", "max_lon")
-                if getattr(self, f) is None
+                f for f in ("min_lat", "max_lat", "min_lon", "max_lon") if getattr(self, f) is None
             ]
             if missing:
                 raise PydanticCustomError(
@@ -115,8 +114,7 @@ class HousingUnitFilters(BaseModel):
                     f"circle does not allow rectangle params: {', '.join(sorted(extra))}",
                 )
             missing = [
-                f for f in ("center_lat", "center_lon", "radius_m")
-                if getattr(self, f) is None
+                f for f in ("center_lat", "center_lon", "radius_m") if getattr(self, f) is None
             ]
             if missing:
                 raise PydanticCustomError(

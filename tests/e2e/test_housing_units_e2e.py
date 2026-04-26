@@ -6,6 +6,7 @@ calls.
 Keep E2E small and high-signal. Broad API behavior is covered by contract and
 integration tests; E2E exists to prove the running service works over HTTP.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -50,9 +51,7 @@ def test_create_read_update_delete_lifecycle(
     assert updated.json()["num_units"] == 99
 
     # delete
-    deleted = e2e_http.delete(
-        f"/v1/housing-units/{unit_id}", headers=e2e_auth_headers
-    )
+    deleted = e2e_http.delete(f"/v1/housing-units/{unit_id}", headers=e2e_auth_headers)
     assert deleted.status_code == 204
 
     # confirm gone

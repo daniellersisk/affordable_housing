@@ -1,4 +1,5 @@
 """Contract tests for GET /housing-units."""
+
 from __future__ import annotations
 
 import pytest

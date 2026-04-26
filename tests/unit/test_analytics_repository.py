@@ -83,4 +83,3 @@ def test_get_summary_propagates_sqlalchemy_errors() -> None:
 
     with pytest.raises(SQLAlchemyError):
         repo.get_summary(session, top_construction_types=3)
-

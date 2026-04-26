@@ -30,7 +30,9 @@ class ErrorResponse(BaseModel):
     detail: ErrorDetail
 
 
-def example_error_response(*, code: str, message: str, details: list[dict[str, Any]] | None = None) -> dict:
+def example_error_response(
+    *, code: str, message: str, details: list[dict[str, Any]] | None = None
+) -> dict:
     """Helper for OpenAPI examples (keeps error shapes consistent)."""
 
     return {
@@ -40,4 +42,3 @@ def example_error_response(*, code: str, message: str, details: list[dict[str, A
             "details": details or [],
         }
     }
-

@@ -35,7 +35,9 @@ _RESPONSES_COMMON = {
                             details=[
                                 {
                                     "field": "num_units_min",
-                                    "message": "num_units_min must be less than or equal to num_units_max",
+                                    "message": (
+                                        "num_units_min must be less than or equal to num_units_max"
+                                    ),
                                 }
                             ],
                         ),
@@ -104,7 +106,9 @@ _RESPONSES_CONFLICT = {
                         "summary": "Duplicate source identity",
                         "value": example_error_response(
                             code=ErrorCode.CONFLICT,
-                            message="housing unit with project_id=P1 and building_id=B1 already exists",
+                            message=(
+                                "housing unit with project_id=P1 and building_id=B1 already exists"
+                            ),
                             details=[],
                         ),
                     }
@@ -355,7 +359,12 @@ def create_housing_unit(
 @private_router.put(
     "/{unit_id}",
     response_model=HousingUnitResponse,
-    responses={**_RESPONSES_AUTH, **_RESPONSES_NOT_FOUND, **_RESPONSES_CONFLICT, **_RESPONSES_COMMON},
+    responses={
+        **_RESPONSES_AUTH,
+        **_RESPONSES_NOT_FOUND,
+        **_RESPONSES_CONFLICT,
+        **_RESPONSES_COMMON,
+    },
 )
 def update_housing_unit(
     unit_id: int,
@@ -366,9 +375,7 @@ def update_housing_unit(
     """Update a housing unit by id."""
     logger.info("PUT /v1/housing-units/%s", unit_id)
     try:
-        unit = service.update_housing_unit(
-            session, unit_id, body.model_dump(exclude_unset=True)
-        )
+        unit = service.update_housing_unit(session, unit_id, body.model_dump(exclude_unset=True))
         session.commit()
     except NotFoundError:
         raise _not_found(unit_id)

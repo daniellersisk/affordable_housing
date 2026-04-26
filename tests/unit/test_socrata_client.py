@@ -3,6 +3,7 @@
 All HTTP calls are mocked — no real network requests are made.
 Tests verify pagination, single-record lookup, SoQL injection escaping, and retry logic.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

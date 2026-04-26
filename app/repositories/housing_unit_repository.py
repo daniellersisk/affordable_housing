@@ -160,9 +160,7 @@ def upsert_from_source(session: Session, records: list[dict[str, Any]]) -> int:
     composite_with_socrata = [r for r in by_source_identity if _has_socrata_row_id(r)]
     if composite_with_socrata:
         socrata_ids = [
-            str(r.get(":id")).strip()
-            for r in composite_with_socrata
-            if r.get(":id") is not None
+            str(r.get(":id")).strip() for r in composite_with_socrata if r.get(":id") is not None
         ]
         stmt = select(
             HousingUnit.socrata_row_id,
@@ -344,6 +342,7 @@ def _apply_filters(stmt: Any, filters: HousingUnitFilters) -> Any:
         stmt = _apply_circle_filter(stmt, filters)
 
     return stmt
+
 
 def _apply_rectangle_filter(stmt: Any, filters: HousingUnitFilters) -> Any:
     """Apply a bounding box WHERE clause for geo_shape=rectangle."""

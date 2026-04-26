@@ -28,8 +28,13 @@ def test_normalize_source_record_maps_total_units() -> None:
 
 def test_normalize_source_record_maps_reporting_construction_type() -> None:
     """reporting_construction_type is mapped to construction_type."""
-    record = {":id": "1", "project_id": "P1", "building_id": "B1", "total_units": "10",
-              "reporting_construction_type": "New Construction"}
+    record = {
+        ":id": "1",
+        "project_id": "P1",
+        "building_id": "B1",
+        "total_units": "10",
+        "reporting_construction_type": "New Construction",
+    }
     result = _normalize_source_record(record)
     assert result["construction_type"] == "New Construction"
     assert "reporting_construction_type" not in result
@@ -37,8 +42,13 @@ def test_normalize_source_record_maps_reporting_construction_type() -> None:
 
 def test_normalize_source_record_uppercases_borough() -> None:
     """borough from source ('Queens') is normalized to uppercase ('QUEENS')."""
-    record = {":id": "1", "project_id": "P1", "building_id": "B1", "total_units": "10",
-              "borough": "Queens"}
+    record = {
+        ":id": "1",
+        "project_id": "P1",
+        "building_id": "B1",
+        "total_units": "10",
+        "borough": "Queens",
+    }
     result = _normalize_source_record(record)
     assert result["borough"] == "QUEENS"
 
