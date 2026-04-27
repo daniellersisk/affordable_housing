@@ -7,6 +7,15 @@ set -euo pipefail
 # - runs migrations + pytest against that DB (via DATABASE_URL override)
 # - drops the test DB at the end
 
+# Load .env so locally customized credentials are respected.
+# Compose reads .env automatically; this keeps the shell script consistent.
+if [[ -f ".env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source ".env"
+  set +a
+fi
+
 PROJECT_DB_NAME="${POSTGRES_DB:-affordable_housing}"
 TEST_DB_NAME="${TEST_DB_NAME:-${PROJECT_DB_NAME}_test}"
 
@@ -14,8 +23,15 @@ POSTGRES_USER="${POSTGRES_USER:-postgres}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
 
 # Reconstruct a DATABASE_URL that points at the test database.
+# Prefer DATABASE_URL if already configured, but override the DB name.
 # Note: we intentionally use the docker-compose network hostname `db`.
-TEST_DATABASE_URL="${TEST_DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${TEST_DB_NAME}}"
+if [[ -z "${TEST_DATABASE_URL:-}" ]]; then
+  if [[ -n "${DATABASE_URL:-}" ]]; then
+    TEST_DATABASE_URL="${DATABASE_URL%/*}/${TEST_DB_NAME}"
+  else
+    TEST_DATABASE_URL="postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${TEST_DB_NAME}"
+  fi
+fi
 
 echo "Starting db (if needed)…"
 docker compose up -d db >/dev/null
