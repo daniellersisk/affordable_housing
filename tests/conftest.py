@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import socket
+from collections.abc import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -7,6 +10,41 @@ from sqlalchemy.orm import Session
 from app.db.session import engine, get_db
 from app.main import app
 from app.settings import settings
+
+
+@pytest.fixture(autouse=True)
+def block_outbound_network(request: pytest.FixtureRequest) -> Generator[None, None, None]:
+    """Fail fast on accidental outbound network calls.
+
+    Allowed destinations:
+    - localhost (E2E uvicorn)
+    - docker-compose service host `db` (Postgres)
+
+    Any test may opt out with `@pytest.mark.allow_network`.
+    """
+    if request.node.get_closest_marker("allow_network") is not None:
+        yield
+        return
+
+    allowed_hosts = {"127.0.0.1", "localhost", "::1", "db"}
+    real_create_connection = socket.create_connection
+
+    def guarded_create_connection(address: object, *args: object, **kwargs: object):  # type: ignore[override]
+        host: str | None = None
+        if isinstance(address, tuple) and len(address) >= 1:
+            host = str(address[0])
+        if host is not None and host in allowed_hosts:
+            return real_create_connection(address, *args, **kwargs)
+        raise RuntimeError(
+            f"Outbound network blocked in tests (host={host!r}). "
+            "Mock HTTP calls (e.g. patch httpx) or mark the test with @pytest.mark.allow_network."
+        )
+
+    socket.create_connection = guarded_create_connection  # type: ignore[assignment]
+    try:
+        yield
+    finally:
+        socket.create_connection = real_create_connection  # type: ignore[assignment]
 
 
 @pytest.fixture

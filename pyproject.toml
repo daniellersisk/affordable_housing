@@ -13,6 +13,7 @@ markers = [
   "integration: tests that exercise application code with real infrastructure dependencies",
   "e2e: tests that exercise end-to-end HTTP flows against the running stack",
   "contract: tests that verify API status codes, response schemas, and error shapes",
+  "allow_network: opt out of outbound network blocking for a test",
   "unit: fast tests with no network/DB dependencies",
   "negative: failure-path tests (auth, validation, not-found, conflict) with stable error schemas",
 ]

@@ -5,10 +5,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.schemas.health import HealthResponse
+
 router = APIRouter()
 
 
-@router.get("/health")
-def health_check() -> dict[str, str]:
+@router.get("/health", response_model=HealthResponse)
+def health_check() -> HealthResponse:
     """Liveness check endpoint."""
-    return {"status": "ok"}
+    return HealthResponse(status="ok")

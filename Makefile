@@ -22,7 +22,7 @@ logs:
 	docker compose logs -f
 
 test: .env
-	docker compose run --rm api pytest -q
+	bash scripts/run_tests.sh
 
 lint: .env
 	docker compose run --rm --no-deps api ruff check .

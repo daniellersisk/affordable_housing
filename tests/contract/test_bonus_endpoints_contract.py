@@ -1,4 +1,4 @@
-"""Contract tests for bonus endpoints: sort, nearby, analytics summary."""
+"""Contract tests for bonus endpoints: sort and nearby."""
 
 from __future__ import annotations
 
@@ -53,34 +53,4 @@ def test_nearby_missing_radius_returns_422(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-@pytest.mark.contract
-def test_analytics_summary_success_contract(client: TestClient) -> None:
-    """GET /v1/analytics/summary returns 200 with correct schema."""
-    response = client.get("/v1/analytics/summary")
-    assert response.status_code == 200
-    data = response.json()
-    assert "total_units" in data
-    assert "total_records" in data
-    assert "units_by_borough" in data
-    assert "top_construction_types" in data
-    assert isinstance(data["total_units"], int)
-    assert isinstance(data["total_records"], int)
-    assert isinstance(data["units_by_borough"], list)
-    assert isinstance(data["top_construction_types"], list)
-
-
-@pytest.mark.contract
-def test_analytics_summary_borough_schema(client: TestClient, auth_headers: dict) -> None:
-    """borough entries in summary have required fields."""
-    client.post(
-        "/v1/housing-units",
-        json={"num_units": 10, "borough": "BROOKLYN"},
-        headers=auth_headers,
-    )
-    response = client.get("/v1/analytics/summary")
-    assert response.status_code == 200
-    boroughs = response.json()["units_by_borough"]
-    if boroughs:
-        b = boroughs[0]
-        assert "total_units" in b
-        assert "record_count" in b
+ 

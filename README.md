@@ -97,6 +97,27 @@ Startup sequence:
 > make import ARGS=--dry-run
 > ```
 
+### Happy path (curl)
+
+Once `make up` is running:
+
+```bash
+# 1) public read: list units
+curl -sS "http://localhost:8000/v1/housing-units?limit=5" | python -m json.tool
+
+# 2) create (write routes require X-API-Key)
+export WRITE_API_KEY="$(grep '^WRITE_API_KEY=' .env | cut -d= -f2-)"
+curl -sS -X POST "http://localhost:8000/v1/housing-units" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ${WRITE_API_KEY}" \
+  -d '{"num_units":25,"street_name":"Example St","borough":"BROOKLYN"}' | python -m json.tool
+
+# 3) refresh (only works for rows with project_id + building_id set)
+# Replace <ID> with a housing unit id that has project_id/building_id.
+curl -sS -X POST "http://localhost:8000/v1/housing-units/<ID>/refresh" \
+  -H "X-API-Key: ${WRITE_API_KEY}" | python -m json.tool
+```
+
 ### Common commands
 
 ```bash
@@ -105,6 +126,12 @@ make lint     # ruff
 make down     # stop containers (keeps DB volume)
 make clean    # stop containers + delete DB volume (DESTROYS DATA)
 ```
+
+Notes on `make test`:
+
+- Tests run against a **fresh ephemeral database** (`${POSTGRES_DB}_test`) created inside the same Postgres container.
+- Migrations are applied to that test database, pytest runs, and then the test database is dropped.
+- This keeps test runs deterministic even if you previously ran `make import` and your main DB has data.
 
 ### Troubleshooting
 
@@ -203,7 +230,23 @@ For challenge scope, API-key-based protection on write routes is the baseline:
 - missing or invalid key: `401`
 - error shape: `{ "code": "...", "message": "...", "details": ... }`
 
-This keeps the app simple enough for the exercise while still showing explicit public/private boundaries. In a production discussion, the natural next step is JWT or OAuth2 with role claims.
+This keeps the app simple enough for the exercise while still showing explicit public/private boundaries.
+
+### Why no full RBAC (and what “RBAC next” looks like)
+
+For this challenge the goal is reviewer-friendly local execution and strong API contracts, not standing up a full identity system. A single write key is the smallest secure boundary that still demonstrates public vs protected routes, explicit `401` behavior, and least-privilege intent.
+
+If this were productionized, RBAC would typically be implemented with **per-user** authentication (JWT/OAuth2) and **role claims**:
+
+- **Auth mechanism**: JWTs issued by an IdP (Auth0/Cognito/Okta) or a first-party auth service; the API verifies signature + expiry.
+- **Authorization model**: role claims like `viewer|editor|admin` (optionally scoped to a tenant/org) enforced per-route (`GET` public or viewer; `POST/PUT` editor+; `DELETE` admin).
+- **Key management alternative** (no per-user JWTs): multiple API keys with attached roles (e.g. `WRITE_API_KEYS_EDITOR`, `WRITE_API_KEYS_ADMIN`). This is workable for service-to-service usage, but it is not a substitute for per-user identity.
+
+Limitations of the current MVP approach:
+
+- **No per-user identity**: requests are authorized as “has the write key” rather than “Alice (editor) in Org X”.
+- **No tenant scoping**: multi-tenant constraints (row-level access by org/tenant) are not modeled.
+- **Auditability is coarse**: audit logs can attribute to a key, not a specific user.
 
 ## API Contract
 
