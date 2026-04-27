@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.api.routes import analytics, health, housing_units
+from app.api.routes import health, housing_units
 from app.core.constants import ErrorCode
 from app.core.logging import configure_logging, new_request_id, set_request_id
 
@@ -59,4 +59,3 @@ app.include_router(housing_units.public_router_alias)
 app.include_router(housing_units.private_router_alias)
 app.include_router(housing_units.public_router)
 app.include_router(housing_units.private_router)
-app.include_router(analytics.router)
