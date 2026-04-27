@@ -2,6 +2,7 @@ name: housing-api
 
 services:
   migrate:
+    container_name: housing-api-migrate
     build:
       context: .
     env_file:
@@ -15,6 +16,7 @@ services:
         condition: service_healthy
 
   api:
+    container_name: housing-api-api
     build:
       context: .
     env_file:
@@ -42,6 +44,7 @@ services:
       start_period: 30s
 
   db:
+    container_name: housing-api-db
     image: postgres:16-alpine
     env_file:
       - .env
