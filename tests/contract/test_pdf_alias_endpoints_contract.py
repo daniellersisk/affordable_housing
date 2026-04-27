@@ -1,4 +1,4 @@
-"""Contract tests for skills-challenge (PDF) paths.
+"""
 
 The prompt lists endpoints under `/housing-units` (no `/v1` prefix). The API keeps
 `/v1/...` as canonical and exposes `/housing-units...` as an alias for reviewer
@@ -58,6 +58,19 @@ def test_alias_post_housing_unit_auth_error_contract(client: TestClient) -> None
 
 @pytest.mark.negative
 @pytest.mark.contract
+def test_alias_post_housing_unit_wrong_key_returns_401(client: TestClient) -> None:
+    resp = client.post(
+        "/housing-units",
+        json={"num_units": 10},
+        headers={"X-API-Key": "wrong-key"},
+    )
+    assert resp.status_code == 401
+    detail = resp.json()["detail"]
+    assert detail["code"] == "UNAUTHORIZED"
+
+
+@pytest.mark.negative
+@pytest.mark.contract
 def test_alias_post_housing_unit_validation_error_contract(
     client: TestClient, auth_headers: dict
 ) -> None:
@@ -71,6 +84,19 @@ def test_alias_post_housing_unit_validation_error_contract(
 @pytest.mark.contract
 def test_alias_put_housing_unit_auth_error_contract(client: TestClient) -> None:
     resp = client.put("/housing-units/1", json={"street_name": "X"})
+    assert resp.status_code == 401
+    detail = resp.json()["detail"]
+    assert detail["code"] == "UNAUTHORIZED"
+
+
+@pytest.mark.negative
+@pytest.mark.contract
+def test_alias_put_housing_unit_wrong_key_returns_401(client: TestClient) -> None:
+    resp = client.put(
+        "/housing-units/1",
+        json={"street_name": "X"},
+        headers={"X-API-Key": "wrong-key"},
+    )
     assert resp.status_code == 401
     detail = resp.json()["detail"]
     assert detail["code"] == "UNAUTHORIZED"
@@ -102,6 +128,15 @@ def test_alias_delete_housing_unit_auth_error_contract(client: TestClient) -> No
 
 @pytest.mark.negative
 @pytest.mark.contract
+def test_alias_delete_housing_unit_wrong_key_returns_401(client: TestClient) -> None:
+    resp = client.delete("/housing-units/1", headers={"X-API-Key": "wrong-key"})
+    assert resp.status_code == 401
+    detail = resp.json()["detail"]
+    assert detail["code"] == "UNAUTHORIZED"
+
+
+@pytest.mark.negative
+@pytest.mark.contract
 def test_alias_delete_housing_unit_not_found_contract(
     client: TestClient, auth_headers: dict
 ) -> None:
@@ -115,6 +150,15 @@ def test_alias_delete_housing_unit_not_found_contract(
 @pytest.mark.contract
 def test_alias_refresh_auth_error_contract(client: TestClient) -> None:
     resp = client.post("/housing-units/1/refresh")
+    assert resp.status_code == 401
+    detail = resp.json()["detail"]
+    assert detail["code"] == "UNAUTHORIZED"
+
+
+@pytest.mark.negative
+@pytest.mark.contract
+def test_alias_refresh_wrong_key_returns_401(client: TestClient) -> None:
+    resp = client.post("/housing-units/1/refresh", headers={"X-API-Key": "wrong-key"})
     assert resp.status_code == 401
     detail = resp.json()["detail"]
     assert detail["code"] == "UNAUTHORIZED"
