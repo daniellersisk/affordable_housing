@@ -230,7 +230,23 @@ For challenge scope, API-key-based protection on write routes is the baseline:
 - missing or invalid key: `401`
 - error shape: `{ "code": "...", "message": "...", "details": ... }`
 
-This keeps the app simple enough for the exercise while still showing explicit public/private boundaries. In a production discussion, the natural next step is JWT or OAuth2 with role claims.
+This keeps the app simple enough for the exercise while still showing explicit public/private boundaries.
+
+### Why no full RBAC (and what “RBAC next” looks like)
+
+For this challenge the goal is reviewer-friendly local execution and strong API contracts, not standing up a full identity system. A single write key is the smallest secure boundary that still demonstrates public vs protected routes, explicit `401` behavior, and least-privilege intent.
+
+If this were productionized, RBAC would typically be implemented with **per-user** authentication (JWT/OAuth2) and **role claims**:
+
+- **Auth mechanism**: JWTs issued by an IdP (Auth0/Cognito/Okta) or a first-party auth service; the API verifies signature + expiry.
+- **Authorization model**: role claims like `viewer|editor|admin` (optionally scoped to a tenant/org) enforced per-route (`GET` public or viewer; `POST/PUT` editor+; `DELETE` admin).
+- **Key management alternative** (no per-user JWTs): multiple API keys with attached roles (e.g. `WRITE_API_KEYS_EDITOR`, `WRITE_API_KEYS_ADMIN`). This is workable for service-to-service usage, but it is not a substitute for per-user identity.
+
+Limitations of the current MVP approach:
+
+- **No per-user identity**: requests are authorized as “has the write key” rather than “Alice (editor) in Org X”.
+- **No tenant scoping**: multi-tenant constraints (row-level access by org/tenant) are not modeled.
+- **Auditability is coarse**: audit logs can attribute to a key, not a specific user.
 
 ## API Contract
 
