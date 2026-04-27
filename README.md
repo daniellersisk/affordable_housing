@@ -127,6 +127,12 @@ make down     # stop containers (keeps DB volume)
 make clean    # stop containers + delete DB volume (DESTROYS DATA)
 ```
 
+Notes on `make test`:
+
+- Tests run against a **fresh ephemeral database** (`${POSTGRES_DB}_test`) created inside the same Postgres container.
+- Migrations are applied to that test database, pytest runs, and then the test database is dropped.
+- This keeps test runs deterministic even if you previously ran `make import` and your main DB has data.
+
 ### Troubleshooting
 
 - **Changed `.env`?** Restart the API container: `docker compose restart api` (or re-run `make up`).
