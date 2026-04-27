@@ -151,6 +151,21 @@ private_router = APIRouter(
     tags=["housing-units — private"],
 )
 
+# Reviewer-friendly aliases (skills challenge spec paths).
+# The PDF uses `/housing-units` (no `/v1`). We keep the canonical versioned
+# routes and also register alias routes that are excluded from OpenAPI to avoid
+# duplicate operation IDs in Swagger.
+public_router_alias = APIRouter(
+    prefix="/housing-units",
+    tags=["housing-units — public (alias)"],
+    include_in_schema=False,
+)
+private_router_alias = APIRouter(
+    prefix="/housing-units",
+    tags=["housing-units — private (alias)"],
+    include_in_schema=False,
+)
+
 
 def _not_found(unit_id: int) -> HTTPException:
     return HTTPException(
@@ -448,3 +463,66 @@ def refresh_housing_unit(
         )
     logger.info("POST /v1/housing-units/%s/refresh complete", unit_id)
     return HousingUnitResponse.model_validate(refreshed)
+
+
+# ---------------------------------------------------------------------------
+# alias route registration (no /v1 prefix)
+# ---------------------------------------------------------------------------
+
+# public alias routes
+public_router_alias.add_api_route(
+    path="",
+    endpoint=list_housing_units,
+    methods=["GET"],
+    response_model=HousingUnitListResponse,
+    responses={**_RESPONSES_COMMON, **_RESPONSES_INVALID_GEO},
+)
+public_router_alias.add_api_route(
+    path="/{unit_id}",
+    endpoint=get_housing_unit,
+    methods=["GET"],
+    response_model=HousingUnitResponse,
+    responses={**_RESPONSES_NOT_FOUND, **_RESPONSES_COMMON},
+)
+public_router_alias.add_api_route(
+    path="/{unit_id}/nearby",
+    endpoint=get_nearby_housing_units,
+    methods=["GET"],
+    response_model=HousingUnitListResponse,
+)
+
+# private alias routes
+private_router_alias.add_api_route(
+    path="",
+    endpoint=create_housing_unit,
+    methods=["POST"],
+    response_model=HousingUnitResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={**_RESPONSES_AUTH, **_RESPONSES_CONFLICT, **_RESPONSES_COMMON},
+)
+private_router_alias.add_api_route(
+    path="/{unit_id}",
+    endpoint=update_housing_unit,
+    methods=["PUT"],
+    response_model=HousingUnitResponse,
+    responses={
+        **_RESPONSES_AUTH,
+        **_RESPONSES_NOT_FOUND,
+        **_RESPONSES_CONFLICT,
+        **_RESPONSES_COMMON,
+    },
+)
+private_router_alias.add_api_route(
+    path="/{unit_id}",
+    endpoint=delete_housing_unit,
+    methods=["DELETE"],
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={**_RESPONSES_AUTH, **_RESPONSES_NOT_FOUND},
+)
+private_router_alias.add_api_route(
+    path="/{unit_id}/refresh",
+    endpoint=refresh_housing_unit,
+    methods=["POST"],
+    response_model=HousingUnitResponse,
+    responses={**_RESPONSES_AUTH, **_RESPONSES_NOT_FOUND, **_RESPONSES_COMMON},
+)

@@ -97,6 +97,27 @@ Startup sequence:
 > make import ARGS=--dry-run
 > ```
 
+### Happy path (curl)
+
+Once `make up` is running:
+
+```bash
+# 1) public read: list units
+curl -sS "http://localhost:8000/v1/housing-units?limit=5" | python -m json.tool
+
+# 2) create (write routes require X-API-Key)
+export WRITE_API_KEY="$(grep '^WRITE_API_KEY=' .env | cut -d= -f2-)"
+curl -sS -X POST "http://localhost:8000/v1/housing-units" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ${WRITE_API_KEY}" \
+  -d '{"num_units":25,"street_name":"Example St","borough":"BROOKLYN"}' | python -m json.tool
+
+# 3) refresh (only works for rows with project_id + building_id set)
+# Replace <ID> with a housing unit id that has project_id/building_id.
+curl -sS -X POST "http://localhost:8000/v1/housing-units/<ID>/refresh" \
+  -H "X-API-Key: ${WRITE_API_KEY}" | python -m json.tool
+```
+
 ### Common commands
 
 ```bash

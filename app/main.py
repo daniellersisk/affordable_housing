@@ -55,6 +55,8 @@ async def validation_exception_handler(
 
 
 app.include_router(health.router)
+app.include_router(housing_units.public_router_alias)
+app.include_router(housing_units.private_router_alias)
 app.include_router(housing_units.public_router)
 app.include_router(housing_units.private_router)
 app.include_router(analytics.router)
